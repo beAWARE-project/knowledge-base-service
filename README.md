@@ -3,6 +3,6 @@ The Knowledge Base Service (KBS) interacts with most beAWARE system components t
 
 
 
-Add file "bus_credentials.json" into KBS folder and modify file "webgenesis_credentials.json" with the correct username and password.
+Add file "bus_credentials.json" and "webgenesis_credentials.json" into KBS folder with the correct values. See dummies in dummy_credentials folder. 
 
 Run the file "kb_service.py" with python3 for the KBS to start. 
