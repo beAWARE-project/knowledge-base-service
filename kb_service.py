@@ -48,7 +48,7 @@ if __name__ == "__main__":
         'TOP001_SOCIAL_MEDIA_TEXT',
         'TOP003_SOCIAL_MEDIA_REPORT',
         'TOP111_SYSTEM_INITIALIZATION',
-        'TOP019_UAV_media_analyzed',
+        'TOP019_UAV_MEDIA_ANALYZED',
         'TOP112_SUMMARY_TRIGGER',
         'TOP006_INCIDENT_REPORT_CRCL',
         'TOP007_UPDATE_INCIDENT_RISK'
