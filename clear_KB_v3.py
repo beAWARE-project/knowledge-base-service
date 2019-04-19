@@ -92,16 +92,8 @@ def remove_instances(webgenesis_client):
 
 
 if __name__ == "__main__":
-    webgenesis_configuration = {
-        # "hostname": "http://0.0.0.0",    # Local WG
-        # "hostname": "https://beaware-thessaloniki.docker01.ilt-dmz.iosb.fraunhofer.de",
-        # "hostname": "https://beaware.server.de",    # Reference WG
-        "hostname": "https://beaware-1.eu-de.containers.appdomain.cloud",  # Cloud WG
-        # "hostname": "https://beaware-dev.docker01.ilt-dmz.iosb.fraunhofer.de",  # Test performance WG
-        "ontology_entry_id": "1932",
-        "username": "panos",
-        "password": "217681"
-    }
+    with open("webgenesis_credentials.json", "r") as f:
+        webgenesis_configuration = json.load(f)
 
     wg = WebGenesisClient(webgenesis_configuration)
 

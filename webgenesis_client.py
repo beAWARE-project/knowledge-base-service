@@ -133,7 +133,7 @@ class WebGenesisClient:
                 reply_dict["text"] = r.text
                 reply_dict["url"] = r.url
 
-                QueryLogger.log_entry(label="add_abox_data", time_query=query_time, query_json=query,
+                QueryLogger.log_entry(label="remove_abox_data", time_query=query_time, query_json=query,
                                       time_reply=reply_time, reply_json=reply_dict)
 
             except Exception as e:
@@ -167,7 +167,7 @@ class WebGenesisClient:
                 reply_dict["text"] = r.text
                 reply_dict["url"] = r.url
 
-                QueryLogger.log_entry(label="add_abox_data", time_query=query_time, query_json=query,
+                QueryLogger.log_entry(label="execute_sparql_select", time_query=query_time, query_json=query,
                                       time_reply=reply_time, reply_json=reply_dict)
             except Exception as e:
                 print('Select failed at SPARQL request')
