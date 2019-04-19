@@ -5,6 +5,7 @@ import sqlite3
 import json
 import time
 from loggers.time_logger import TimeLogger
+from webgenesis_client import WebGenesisClient
 
 
 class IncomingMessagesHandler:
@@ -46,6 +47,18 @@ class IncomingMessagesHandler:
 
         # If message successfully parsed into json and contains a "body" field
         if (message_json is not None) and ('body' in message_json):
+
+            try:
+                wg_client = WebGenesisClient(self.webgenesis_conf)
+                results = wg_client.execute_sparql_select(query="""SELECT (COUNT(?report) AS ?reports)
+                                                                WHERE {?report rdf:type baw:IncidentReport .}""")
+                if results is not None:
+                    TimeLogger.incident_count = str(results['results']['bindings'][0]['reports']['value'])
+                # print(TimeLogger.incident_count)
+            except:
+                pass
+
+
             # Insert message to KB if necessary
             Message2KB(self.webgenesis_conf, message_json)
 
