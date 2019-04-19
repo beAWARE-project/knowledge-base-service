@@ -1,13 +1,17 @@
 import json
+
+from pyodbc import Time
 from webgenesis_client import WebGenesisClient
 from bus_producer import BusProducer
 from datetime import datetime, timedelta
 from math import radians, sin, cos, acos
 from random import randint, choice
 import string
+from loggers.time_logger import TimeLogger
 
 
 class Reasoner:
+    @TimeLogger.timer_decorator(tags=["reasoners"])
     def __init__(self, webgenesis_conf, message_json=None):
         self.conf = webgenesis_conf
         self.incoming_message = message_json
@@ -1183,3 +1187,4 @@ class Reasoner:
                     self.webgenesis_client.update_incident_severity(incident_uri, "severe")
                 elif incident_type == 'Empty':
                     self.webgenesis_client.update_incident_severity(incident_uri, "minor")
+

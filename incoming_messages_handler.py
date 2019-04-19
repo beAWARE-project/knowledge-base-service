@@ -4,6 +4,7 @@ from reasoner import Reasoner
 import sqlite3
 import json
 import time
+from loggers.time_logger import TimeLogger
 
 
 class IncomingMessagesHandler:
@@ -30,6 +31,7 @@ class IncomingMessagesHandler:
             # Get next message
             message = self.retrieve_a_message()
 
+    @TimeLogger.timer_decorator(tags=["populate_reasoner"])
     def process_message(self, message_id, message_text):
         message_json = None
 

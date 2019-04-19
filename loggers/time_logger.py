@@ -10,7 +10,7 @@ if greater than 1 the final entries might not be stored (use TimeLogger.flush() 
 import time
 
 TIMING_ENABLED = True
-PATH_TIMING_LOG = "./logs/time_logs.csv"
+PATH_TIMING_LOG = "./loggers/logs/time_logs.csv"
 BATCH_SIZE = 5
 
 
@@ -54,7 +54,7 @@ class TimeLogger:
             with open(path_log, "a") as f:
                 for line in TimeLogger._entries:
                     f.write(line)
-                print("write to " + path_log)
+                # print("write to " + path_log)
             TimeLogger._entries = []
             return True
         except (OSError, IOError) as e:

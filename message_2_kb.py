@@ -2,9 +2,12 @@ import json
 from webgenesis_client import WebGenesisClient
 import requests
 import time
+from loggers.time_logger import TimeLogger
 
 
 class Message2KB:
+
+    @TimeLogger.timer_decorator(tags=["message2KB"])
     def __init__(self, webgenesis_conf, message_json):
         self.conf = webgenesis_conf
         self.webgenesis_client = WebGenesisClient(self.conf)
@@ -19,7 +22,6 @@ class Message2KB:
             pass
 
     def top021_incident_report(self):
-
         # If an Alert from app
         if (self.message['header']['actionType'] == 'Alert') and (self.message['header']['status'] == 'Actual'):
 

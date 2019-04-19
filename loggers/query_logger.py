@@ -8,7 +8,7 @@ if greater than 1 the final entries might not be stored (use QuerryLogger.flush(
 import json
 import time
 
-PATH_QUERY_FOLDER = "./logs/query_logs/"
+PATH_QUERY_FOLDER = "./loggers/logs/query_logs/"
 BATCH_SIZE = 1
 
 
@@ -47,19 +47,17 @@ class QueryLogger:
         Writes the entries to folder.
         """
         try:
-            print("Writing Batch queries")
+            # print("Writing Batch queries")
             for entry in QueryLogger._entries:
-                print("the entry is:\n" + json.dumps(entry))
-                print(entry["label"])
                 p = path_log + entry["label"] + "_" + str(time.time()) + "_" + str(QueryLogger._ascending_id) + ".json"
                 with open(p, "w+") as f:
                     f.write(json.dumps(entry))
-                    print("log json to file:" + p)
+                    # print("log json to file:" + p)
                     QueryLogger._ascending_id += 1
 
             QueryLogger._entries = []
             return True
         except (OSError, IOError, Exception) as e:
-            print("Error at loggers decorator (writing file):")
+            print("Error at query logger (writing json file):")
             print(e)
             return False
