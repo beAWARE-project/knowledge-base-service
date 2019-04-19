@@ -6,7 +6,6 @@ from loggers.time_logger import TimeLogger
 
 
 class Message2KB:
-
     @TimeLogger.timer_decorator(tags=["message2KB"])
     def __init__(self, webgenesis_conf, message_json):
         self.conf = webgenesis_conf
@@ -21,7 +20,9 @@ class Message2KB:
         except:
             pass
 
+    @TimeLogger.timer_decorator(tags=["top021"])
     def top021_incident_report(self):
+
         # If an Alert from app
         if (self.message['header']['actionType'] == 'Alert') and (self.message['header']['status'] == 'Actual'):
 
@@ -34,6 +35,7 @@ class Message2KB:
             # Handle Update
             self.top021_incident_report_app_update()
 
+    @TimeLogger.timer_decorator(tags=["top021"])
     def top021_incident_report_app_alert(self):
         print(">> TOP021 Incident alert received from APP")
 
@@ -101,6 +103,7 @@ class Message2KB:
 
         print(">> Incident alert populated to KB")
 
+    @TimeLogger.timer_decorator(tags=["top021"])
     def top021_incident_report_app_update(self):
         print(">> TOP021 Incident update received from APP")
 
@@ -179,6 +182,7 @@ class Message2KB:
 
         print(">> Incident update populated to KB")
 
+    @TimeLogger.timer_decorator(tags=["top018"])
     def top018_image_analyzed(self):
         print(">> TOP018 image analysis received from HUB")
 
@@ -289,6 +293,7 @@ class Message2KB:
 
         print(">> Image analysis populated to KB")
 
+    @TimeLogger.timer_decorator(tags=["top017"])
     def top017_video_analyzed(self):
         print(">> TOP017 video analysis received from HUB")
 
@@ -400,6 +405,7 @@ class Message2KB:
 
         print(">> Video analysis populated to KB")
 
+    @TimeLogger.timer_decorator(tags=["top028"])
     def top028_text_analysed(self):
         print(">> TOP028 text analysis received from MTA")
 
@@ -575,6 +581,7 @@ class Message2KB:
 
         print(">> Text analysis populated to KB")
 
+    @TimeLogger.timer_decorator(tags=["top040"])
     def top040_text_report_generated(self):
         print(">> TOP040 generated report received from MRG")
 
@@ -589,6 +596,7 @@ class Message2KB:
 
         # TODO: Decide if needed to create hasTitle, hasDescription properties in ontology and instantiate them with these values
 
+    @TimeLogger.timer_decorator(tags=["top001"])
     def top001_social_media_text(self):
         print(">> TOP001 new social media text arrived from SMA")
 
@@ -651,6 +659,7 @@ class Message2KB:
 
         print(">> Social media text populated to KB")
 
+    @TimeLogger.timer_decorator(tags=["top003"])
     def top003_social_media_report(self):
         print(">> TOP003 new social media report arrived from SMC")
 
@@ -709,6 +718,7 @@ class Message2KB:
 
         print(">> Social media report populated to KB")
 
+    @TimeLogger.timer_decorator(tags=["top019"])
     def top019_uav_media_analyzed(self):
         print(">> TOP019 UAV media analysis received")
         try:
@@ -849,6 +859,8 @@ class Message2KB:
 
         print(">> Drone footage analysis populated to KB")
 
+
+    @TimeLogger.timer_decorator(tags=["top006"])
     def top006_incident_report_crcl(self):
         print(">> TOP006 Incident alert received from CRCL")
 
@@ -946,6 +958,8 @@ class Message2KB:
 
         print(">> Incident report from CRCL populated to KB")
 
+
+    @TimeLogger.timer_decorator(tags=["top007"])
     def top007_update_incident_risk(self):
         print(">> TOP007 Incident risk update received from CRCL")
 

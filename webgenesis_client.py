@@ -2,7 +2,6 @@ import requests
 import json
 import sqlite3
 from datetime import datetime
-from loggers.time_logger import TimeLogger
 from loggers.query_logger import QueryLogger
 import time
 
@@ -69,7 +68,6 @@ class WebGenesisClient:
     def add_abox_data(self, json_query):
         # If query argument is valid
         try:
-            query_time = time.time()
             query = json.loads(json_query)
         except ValueError as e:
             print("Invalid query argument")
@@ -84,13 +82,14 @@ class WebGenesisClient:
 
             # Send request with query
             try:
+                query_time = time.time()
+
                 r = self.session.post(self.addABoxData_url, headers=headers, data=json.dumps(query))
 
                 reply_time = time.time()
-
                 reply_dict = dict()
-                reply_dict["text"] = r.text
                 reply_dict["status_code"] = r.status_code
+                reply_dict["text"] = r.text
                 reply_dict["url"] = r.url
 
                 QueryLogger.log_entry(label="add_abox_data", time_query=query_time, query_json=query, time_reply=reply_time, reply_json=reply_dict)
@@ -110,7 +109,6 @@ class WebGenesisClient:
 
         # If query argument is valid
         try:
-            query_time = time.time()
             query = json.loads(json_query)
         except ValueError as e:
             print("Invalid query argument")
@@ -125,19 +123,19 @@ class WebGenesisClient:
 
             # Send request with query
             try:
-
+                query_time = time.time()
                 r = self.session.post(self.removeABoxData_url, headers=headers, data=json.dumps(query))
                 print(r.text)
 
                 reply_time = time.time()
-
                 reply_dict = dict()
-                reply_dict["text"] = r.text
                 reply_dict["status_code"] = r.status_code
+                reply_dict["text"] = r.text
                 reply_dict["url"] = r.url
 
-                QueryLogger.log_entry(label="remove_abox_data", time_query=query_time, query_json=query,
+                QueryLogger.log_entry(label="add_abox_data", time_query=query_time, query_json=query,
                                       time_reply=reply_time, reply_json=reply_dict)
+
             except Exception as e:
                 print('removeABoxData failed at http request')
                 print(e)
@@ -164,13 +162,12 @@ class WebGenesisClient:
                 r = self.session.post(self.sparql_url, headers=headers, params={'query': query, 'output': 'json'})
 
                 reply_time = time.time()
-
                 reply_dict = dict()
-                reply_dict["text"] = r.text
                 reply_dict["status_code"] = r.status_code
+                reply_dict["text"] = r.text
                 reply_dict["url"] = r.url
 
-                QueryLogger.log_entry(label="execute_sparql_select", time_query=query_time, query_json=query,
+                QueryLogger.log_entry(label="add_abox_data", time_query=query_time, query_json=query,
                                       time_reply=reply_time, reply_json=reply_dict)
             except Exception as e:
                 print('Select failed at SPARQL request')
@@ -320,7 +317,6 @@ class WebGenesisClient:
             print(e)
             return None
 
-    @TimeLogger.timer_decorator(tags=["ClearKB"])
     def delete_all_incident_report_texts_in_sqlite(self):
         try:
             con = sqlite3.connect(self.database)

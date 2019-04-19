@@ -49,6 +49,8 @@ class QueryLogger:
         try:
             # print("Writing Batch queries")
             for entry in QueryLogger._entries:
+                # print("the entry is:\n" + json.dumps(entry))
+                # print(entry["label"])
                 p = path_log + entry["label"] + "_" + str(time.time()) + "_" + str(QueryLogger._ascending_id) + ".json"
                 with open(p, "w+") as f:
                     f.write(json.dumps(entry))
@@ -58,6 +60,7 @@ class QueryLogger:
             QueryLogger._entries = []
             return True
         except (OSError, IOError, Exception) as e:
-            print("Error at query logger (writing json file):")
+            print("Error at query logger (writing file):")
             print(e)
+            QueryLogger._entries = []  # even if the write isn't successful clear the entries
             return False

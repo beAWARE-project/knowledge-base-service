@@ -31,7 +31,7 @@ class IncomingMessagesHandler:
             # Get next message
             message = self.retrieve_a_message()
 
-    @TimeLogger.timer_decorator(tags=["populate_reasoner"])
+    @TimeLogger.timer_decorator(tags=["populate_reason"])
     def process_message(self, message_id, message_text):
         message_json = None
 

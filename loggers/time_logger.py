@@ -11,7 +11,7 @@ import time
 
 TIMING_ENABLED = True
 PATH_TIMING_LOG = "./loggers/logs/time_logs.csv"
-BATCH_SIZE = 5
+BATCH_SIZE = 1
 
 
 class TimeLogger:
@@ -60,6 +60,7 @@ class TimeLogger:
         except (OSError, IOError) as e:
             print("Error at loggers decorator (writing file):")
             print(e)
+            TimeLogger._entries = []  # even if the write wasn't successful clear the entries
             return False
 
     @staticmethod
