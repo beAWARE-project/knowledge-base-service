@@ -2,11 +2,12 @@
 To define the file to log the queries in json form, change PATH_QUERY_LOG.
 
 Use BATCH_SIZE if multiple file I/Os are of a concern. However,
-if greater than 1 the final entries might not be stored (use QuerryLogger.flush() to ensure that they will).
+if greater than 1, then the final entries might not be written (use QuerryLogger.flush() to ensure that they will).
 """
 
 import json
 
+QUERY_LOG_ENABLED = False
 PATH_QUERY_FOLDER = "./loggers/logs/query_logs/"
 BATCH_SIZE = 1
 
@@ -22,16 +23,16 @@ class QueryLogger:
 
         create manually one entry and add it to _entries
         """
-
-        fields = dict()
-        fields["label"] = label
-        fields["time_start"] = time_query
-        fields["query"] = query_json
-        fields["time_end"] = time_reply
-        fields["reply_json"] = reply_json
-        QueryLogger._entries.append(fields)
-        if len(QueryLogger._entries) >= BATCH_SIZE:
-            QueryLogger._log_queries_json()
+        if QUERY_LOG_ENABLED:
+            fields = dict()
+            fields["label"] = label
+            fields["time_start"] = time_query
+            fields["query"] = query_json
+            fields["time_end"] = time_reply
+            fields["reply_json"] = reply_json
+            QueryLogger._entries.append(fields)
+            if len(QueryLogger._entries) >= BATCH_SIZE:
+                QueryLogger._log_queries_json()
 
     @staticmethod
     def flush_entries():
@@ -47,23 +48,25 @@ class QueryLogger:
         """
         try:
             # print("Writing Batch queries")
+
+            p = path_log + "web_gen_requests.json"
+            with open(p) as feedsjson:
+                feeds = json.load(feedsjson)
+
             for entry in QueryLogger._entries:
                 # print("the entry is:\n" + json.dumps(entry))
                 # print(entry["label"])
-                # p = path_log + entry["label"] + "_" + str(time.time()) + "_" + str(QueryLogger._ascending_id) + ".json"
-
-                p = path_log+"web_gen_requests.json"
-                with open(p) as feedsjson:
-                    feeds = json.load(feedsjson)
+                # p = path_log+ entry["label"] + "_" + str(time.time()) + "_" + str(QueryLogger._ascending_id) + ".json"
 
                 feeds.append(entry)
-                with open(p, mode='w') as f:
-                    f.write(json.dumps(feeds, indent=2))
 
                 # with open(p, "w+") as f:
                 #     f.write(json.dumps(entry))
                 #    # print("log json to file:" + p)
-                    # QueryLogger._ascending_id += 1
+                # QueryLogger._ascending_id += 1
+
+            with open(p, mode='w') as f:
+                f.write(json.dumps(feeds, indent=2))
 
             QueryLogger._entries = []
             return True
