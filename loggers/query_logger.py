@@ -54,16 +54,7 @@ class QueryLogger:
                 feeds = json.load(feedsjson)
 
             for entry in QueryLogger._entries:
-                # print("the entry is:\n" + json.dumps(entry))
-                # print(entry["label"])
-                # p = path_log+ entry["label"] + "_" + str(time.time()) + "_" + str(QueryLogger._ascending_id) + ".json"
-
                 feeds.append(entry)
-
-                # with open(p, "w+") as f:
-                #     f.write(json.dumps(entry))
-                #    # print("log json to file:" + p)
-                # QueryLogger._ascending_id += 1
 
             with open(p, mode='w') as f:
                 f.write(json.dumps(feeds, indent=2))
