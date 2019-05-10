@@ -59,6 +59,14 @@ if __name__ == "__main__":
     print("*** KB SERVICE v1.0 ***")
     print("***********************\n" + '\033[0m')
 
+    print("WG credentials:")
+    with open("webgenesis_credentials.json", "r") as f:
+        print(f.readlines())
+
+    print("BUS credentials:")
+    with open("webgenesis_credentials.json", "r") as f:
+        print(f.readlines())
+
     # kb_service = KBService(listen_to_topics=topics, webgenesis_conf=webgenesis_configuration)
     # kb_service.run_service()
 
