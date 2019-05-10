@@ -59,5 +59,7 @@ if __name__ == "__main__":
     print("*** KB SERVICE v1.0 ***")
     print("***********************\n" + '\033[0m')
 
-    kb_service = KBService(listen_to_topics=topics, webgenesis_conf=webgenesis_configuration)
-    kb_service.run_service()
+    # kb_service = KBService(listen_to_topics=topics, webgenesis_conf=webgenesis_configuration)
+    # kb_service.run_service()
+
+    print("NOW IT WOULD START")

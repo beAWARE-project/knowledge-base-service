@@ -58,7 +58,6 @@ class IncomingMessagesHandler:
             except:
                 pass
 
-
             # Insert message to KB if necessary
             Message2KB(self.webgenesis_conf, message_json)
 
