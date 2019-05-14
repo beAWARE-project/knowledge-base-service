@@ -58,6 +58,8 @@ if __name__ == "__main__":
     print('\033[95m' + "\n***********************")
     print("*** KB SERVICE v1.0 ***")
     print("***********************\n" + '\033[0m')
+    
+    print("WebGenesis URL:", webgenesis_configuration["hostname"])
 
     kb_service = KBService(listen_to_topics=topics, webgenesis_conf=webgenesis_configuration)
     kb_service.run_service()
