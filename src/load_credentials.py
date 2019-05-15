@@ -4,7 +4,7 @@ import json
 
 class LoadCredentials:
     # filename of wg entrypoint
-    _wg_entrypoint_file = "./../webgenesis_entrypoint.json"
+    _wg_entrypoint_file = "webgenesis_entrypoint.json"
 
     # the following are the ENV VARs
     _wg_username_env = "WG_USERNAME"
@@ -49,6 +49,6 @@ class LoadCredentials:
 
 
 if __name__ == "__main__":
-    os.environ["WG_PASSWORD"] = "217681"
-    os.environ["WG_USERNAME"] = "panos"
+    os.environ["WG_PASSWORD"] = "XXX"
+    os.environ["WG_USERNAME"] = "XXX"
     print(LoadCredentials.load_wg_credentials())
