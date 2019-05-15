@@ -1,0 +1,23 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  namespace: prod
+  annotations:
+    ingress.bluemix.net/redirect-to-https: "true"
+    ingress.bluemix.net/rewrite-path: "serviceName=knowledge-base-service rewrite=/"
+  # Change to your application name
+  name: knowledge-base-service
+spec:
+  tls:
+  - hosts:
+    - beaware.uk-south.containers.mybluemix.net
+    secretName: beaware
+  rules:
+  - host: beaware.uk-south.containers.mybluemix.net
+    http:
+      paths:
+      - backend:
+          # Change to your service name (kubernetes service)
+          serviceName: knowledge-base-service
+          # URL Suffix for example "/my-service"
+        path: /knowledge-base-service
