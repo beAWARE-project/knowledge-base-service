@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: knowledge-base-service
+  name: knowledge-base-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: knowledge-base-service
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  revisionHistoryLimit: 5
+  template:
+    metadata:
+      labels:
+        app: knowledge-base-service
+    spec:
+      containers:
+      - image: beaware/knowledge-base-service:IMAGE_TAG
+        imagePullPolicy: Always
+        name: knowledge-base-service
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        env:
+          - name: SECRET_MH_API_KEY
+            valueFrom:
+             secretKeyRef:
+              name: mh-secret2
+              key: api_key
+          - name: SECRET_MH_BROKERS
+            valueFrom:
+             secretKeyRef:
+              name: mh-secret2
+              key: kafka_brokers_sasl
+            

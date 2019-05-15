@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: knowledge-base-service
+  name: knowledge-base-service
+spec:
+  selector:
+    app: knowledge-base-service
+
