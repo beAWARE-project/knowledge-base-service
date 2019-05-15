@@ -2,7 +2,7 @@
 from message_listener import ListenerThread
 from incoming_messages_handler import IncomingMessagesHandler
 import time
-import json
+import load_credentials
 
 
 class KBService:
@@ -36,8 +36,10 @@ class KBService:
 
 
 if __name__ == "__main__":
-    with open("webgenesis_credentials.json", "r") as f:
-        webgenesis_configuration = json.load(f)
+    # with open("webgenesis_credentials.json", "r") as f:
+    #     webgenesis_configuration = json.load(f)
+
+    webgenesis_configuration = load_credentials.LoadCredentials.load_wg_credentials()
 
     topics = [
         'TOP021_INCIDENT_REPORT',

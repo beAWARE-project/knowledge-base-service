@@ -1,13 +1,16 @@
 from confluent_kafka import Producer
 import rest
 import json
+import load_credentials
 
 
 class BusProducer:
     def __init__(self):
 
         # Pre-shared credentials
-        self.credentials = json.load(open('bus_credentials.json'))
+        # self.credentials = json.load(open('bus_credentials.json'))
+
+        self.credentials = load_credentials.LoadCredentials.load_bus_credentials()
 
         # Construct required configuration
         self.configuration = {

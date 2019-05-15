@@ -4,6 +4,7 @@ import sqlite3
 from datetime import datetime
 from loggers.query_logger import QueryLogger
 import time
+import load_credentials
 
 
 class WebGenesisClient:
@@ -1363,8 +1364,10 @@ class WebGenesisClient:
 
 if __name__ == "__main__":
     # Prepare configuration for webgenesis
-    with open("webgenesis_credentials.json", "r") as f:
-        webgenesis_configuration = json.load(f)
+    # with open("webgenesis_credentials.json", "r") as f:
+    #     webgenesis_configuration = json.load(f)
+
+    webgenesis_configuration = load_credentials.LoadCredentials.load_wg_credentials()
 
     # Create webgenesis client
     c = WebGenesisClient(webgenesis_configuration)

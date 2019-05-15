@@ -49,6 +49,6 @@ class LoadCredentials:
 
 
 if __name__ == "__main__":
-    os.environ["WG_PASSWORD"] = "XXX"
-    os.environ["WG_USERNAME"] = "XXX"
+    os.environ["WG_PASSWORD"] = "XXX_pass"
+    os.environ["WG_USERNAME"] = "XXX_username"
     print(LoadCredentials.load_wg_credentials())

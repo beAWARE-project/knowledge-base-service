@@ -1,5 +1,6 @@
 from webgenesis_client import WebGenesisClient
 import json
+import load_credentials
 
 
 def get_classes():
@@ -92,8 +93,9 @@ def remove_instances(webgenesis_client):
 
 
 if __name__ == "__main__":
-    with open("webgenesis_credentials.json", "r") as f:
-        webgenesis_configuration = json.load(f)
+    # with open("webgenesis_credentials.json", "r") as f:
+    #     webgenesis_configuration = json.load(f)
+    webgenesis_configuration = load_credentials.LoadCredentials.load_wg_credentials()
 
     wg = WebGenesisClient(webgenesis_configuration)
 
