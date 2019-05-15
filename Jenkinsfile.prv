@@ -1,6 +1,6 @@
 node ('beaware-jenkins-slave') {
     stage('Download Latest') {
-        git(url: 'https://github.com/beaware-project/knowledge-base-service.git', branch: 'Version2')
+        git(url: 'https://github.com/beaware-project/knowledge-base-service.git', branch: 'master')
         sh 'git submodule init'
         sh 'git submodule update'
     }
