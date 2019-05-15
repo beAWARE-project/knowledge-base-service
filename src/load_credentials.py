@@ -23,7 +23,7 @@ class LoadCredentials:
         """
         cred = dict()
         cred['api_key'] = os.environ[LoadCredentials._api_key_env]
-        cred['kafka_admin_url'] = "https://kafka-admin-prod02.messagehub.services.eu-gb.bluemix.net:443"
+        # cred['kafka_admin_url'] = "https://kafka-admin-prod02.messagehub.services.eu-gb.bluemix.net:443"
         cred['kafka_brokers_sasl'] = os.environ[LoadCredentials._kafka_brokers_sasl_env]
 
         return cred
