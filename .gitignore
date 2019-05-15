@@ -1,2 +1,5 @@
 ./webgenesis_credentials.json
 ./bus_credentials.json
+./src/webgenesis_credentials.json
+./src/bus_credentials.json
+**/.idea/
