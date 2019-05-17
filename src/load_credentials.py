@@ -37,9 +37,10 @@ class LoadCredentials:
             print(
                 "Error @ load bus credentials using the keys:" + LoadCredentials._api_key_env + " " + LoadCredentials._kafka_brokers_sasl_env)
             bus_cred_file = "bus_credentials.json"
-            print("Trying to find values in file instead:" + bus_cred_file)
+            print("Loading values form file instead:" + bus_cred_file)
             with open(bus_cred_file) as f:
                 return json.load(f)
+
 
         return cred
 
@@ -62,7 +63,7 @@ class LoadCredentials:
 
             # for the local deployment
             wg_cred_path = "webgenesis_credentials.json"
-            print("Trying to find values in file instead:" + wg_cred_path)
+            print("Loading values form file instead:" + wg_cred_path)
             with open(wg_cred_path, 'r') as f:
                 return json.load(f)
 

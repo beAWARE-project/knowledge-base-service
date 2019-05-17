@@ -16,7 +16,7 @@ class BusProducer:
         self.configuration = {
             'client.id': 'KB_producer',
             'group.id': 'KB_producer_group',
-            'bootstrap.servers': ','.join(self.credentials['kafka_brokers_sasl']),
+            'bootstrap.servers': (','.join(self.credentials['kafka_brokers_sasl'] if self.credentials['kafka_brokers_sasl']==list else self.credentials['kafka_brokers_sasl'])),
             'security.protocol': 'SASL_SSL',
             'ssl.ca.location': '/etc/ssl/certs',
             'sasl.mechanisms': 'PLAIN',
