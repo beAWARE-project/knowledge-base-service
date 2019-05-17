@@ -16,4 +16,4 @@ WORKDIR /usr/src/knowledge-base-service/
 RUN python3 clear_KB_v3.py
 
 # Run app.py when the container launches
-CMD ["python3", "kb_service.py"]
+# CMD ["python3", "kb_service.py"]
