@@ -32,12 +32,12 @@ class LoadCredentials:
         try:
             cred['api_key'] = os.environ[LoadCredentials._api_key_env]
             cred['kafka_brokers_sasl'] = os.environ[LoadCredentials._kafka_brokers_sasl_env]
-            print("kafka brokers sasl:" + os.environ[LoadCredentials._kafka_brokers_sasl_env])
+            # print("kafka brokers sasl:" + os.environ[LoadCredentials._kafka_brokers_sasl_env])
         except:
-            print(
-                "Error @ load bus credentials using the keys:" + LoadCredentials._api_key_env + " " + LoadCredentials._kafka_brokers_sasl_env)
+            # print(
+            #     "Error @ load bus credentials using the keys:" + LoadCredentials._api_key_env + " " + LoadCredentials._kafka_brokers_sasl_env)
             bus_cred_file = "bus_credentials.json"
-            print("Loading values form file instead:" + bus_cred_file)
+            # print("Loading values form file instead:" + bus_cred_file)
             with open(bus_cred_file) as f:
                 return json.load(f)
 
