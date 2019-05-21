@@ -17,7 +17,6 @@ class LoadCredentials:
     _wg_pass_env = "WG_PASSWORD"
 
     _api_key_env = "SECRET_MH_API_KEY"
-    # _kafka_admin_url_env = ""
     _kafka_brokers_sasl_env = "SECRET_MH_BROKERS"
 
     @staticmethod
@@ -32,15 +31,13 @@ class LoadCredentials:
         try:
             cred['api_key'] = os.environ[LoadCredentials._api_key_env]
             cred['kafka_brokers_sasl'] = os.environ[LoadCredentials._kafka_brokers_sasl_env]
-            # print("kafka brokers sasl:" + os.environ[LoadCredentials._kafka_brokers_sasl_env])
         except:
-            # print(
-            #     "Error @ load bus credentials using the keys:" + LoadCredentials._api_key_env + " " + LoadCredentials._kafka_brokers_sasl_env)
+            # If failed reading the env vars, then try to load the values from the local file (as was previously)
             bus_cred_file = "bus_credentials.json"
-            # print("Loading values form file instead:" + bus_cred_file)
             with open(bus_cred_file) as f:
                 return json.load(f)
 
+        cred['kafka_brokers_sasl'] = cred['kafka_brokers_sasl'].split(',')
 
         return cred
 
@@ -58,10 +55,7 @@ class LoadCredentials:
             cred['username'] = os.environ[LoadCredentials._wg_username_env]
             cred['password'] = os.environ[LoadCredentials._wg_pass_env]
         except:
-            print(
-                "Error @ load bus credentials using the keys:" + LoadCredentials._wg_username_env + " " + LoadCredentials._wg_pass_env)
-
-            # for the local deployment
+            # If failed reading the env vars, then try to load the values from the local file (as was previously)
             wg_cred_path = "webgenesis_credentials.json"
             print("Loading values form file instead:" + wg_cred_path)
             with open(wg_cred_path, 'r') as f:
@@ -76,9 +70,7 @@ class LoadCredentials:
 
 
 if __name__ == "__main__":
-    # LoadCredentials.load_bus_credentials()
-    # print("hey")
-    os.environ["WG_PASSWORD"] = "XXX_pass"
-    os.environ["WG_USERNAME"] = "XXX_username"
+    # os.environ["WG_PASSWORD"] = "XXX_pass"
+    # os.environ["WG_USERNAME"] = "XXX_username"
     print(LoadCredentials.load_wg_credentials())
-    # print(LoadCredentials.load_bus_credentials())
+    print(LoadCredentials.load_bus_credentials())

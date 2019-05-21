@@ -9,7 +9,7 @@ if greater than 1 the final entries might not be stored (use TimeLogger.flush() 
 
 import time
 
-TIMING_ENABLED = True
+TIMING_ENABLED = False
 PATH_TIMING_LOG = "./loggers/logs/time_logs.csv"
 BATCH_SIZE = 1
 
