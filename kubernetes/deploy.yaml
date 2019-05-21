@@ -39,4 +39,14 @@ spec:
              secretKeyRef:
               name: mh-secret2
               key: kafka_brokers_sasl
+          - name: WG_USERNAME
+            valueFrom:
+             secretKeyRef:
+              name: kb-secret
+              key: user
+          - name: WG_PASSWORD
+            valueFrom:
+             secretKeyRef:
+              name: kb-secret
+              key: pswd
             
