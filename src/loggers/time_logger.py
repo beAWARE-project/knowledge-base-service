@@ -54,14 +54,14 @@ class TimeLogger:
             with open(path_log, "a") as f:
                 for line in TimeLogger._entries:
                     f.write(line)
-                # print("write to " + path_log)
-            TimeLogger._entries = []
             return True
-        except (OSError, IOError) as e:
+        except Exception as e:
+            # except (OSError, IOError) as e:
             print("Error at loggers decorator (writing file):")
             print(e)
-            TimeLogger._entries = []  # even if the write wasn't successful clear the entries
             return False
+        finally:
+            TimeLogger._entries = []  # even if the write wasn't successful clear the entries
 
     @staticmethod
     def timer_decorator(tags=None):
@@ -71,22 +71,17 @@ class TimeLogger:
 
         def intermediate_timer_decorator(func):
             def wrapper(*args, **kwargs):
-                try:
-                    if TIMING_ENABLED:
-                        start_time = time.time()
-                        res = func(*args, **kwargs)
-                        end_time = time.time()
+                if TIMING_ENABLED:
+                    start_time = time.time()
+                    res = func(*args, **kwargs)
+                    end_time = time.time()
 
-                        TimeLogger.log_entry(func_name=func.__name__, start_time=start_time, end_time=end_time,
-                                             tags=tags)
+                    TimeLogger.log_entry(func_name=func.__name__, start_time=start_time, end_time=end_time,
+                                         tags=tags)
 
-                        return res
-                    else:
-                        return func(*args, **kwargs)
-                except Exception as e:
-                    print("Error at timer decorator:")
-                    print(e)
-
+                    return res
+                else:
+                    return func(*args, **kwargs)
             return wrapper
 
         return intermediate_timer_decorator

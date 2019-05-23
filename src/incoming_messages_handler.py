@@ -6,6 +6,7 @@ import json
 import time
 from loggers.time_logger import TimeLogger
 from webgenesis_client import WebGenesisClient
+from loggers.query_logger import QueryLogger
 
 
 class IncomingMessagesHandler:
@@ -54,8 +55,8 @@ class IncomingMessagesHandler:
                                                                 WHERE {?report rdf:type baw:IncidentReport .}""")
                 if results is not None:
                     TimeLogger.incident_count = str(results['results']['bindings'][0]['reports']['value'])
-                # print(TimeLogger.incident_count)
             except:
+                print("Error @ getting incident count")
                 pass
 
             # Insert message to KB if necessary
@@ -63,6 +64,8 @@ class IncomingMessagesHandler:
 
             # Run reasoner if necessary
             Reasoner(self.webgenesis_conf, message_json)
+
+            QueryLogger.flush_entries()  # make sure that there are not any unsaved entries at the buffer
 
     def retrieve_a_message(self):
         try:

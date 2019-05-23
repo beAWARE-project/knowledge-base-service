@@ -81,24 +81,30 @@ class WebGenesisClient:
             # Prepare headers
             headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
 
+            query_time = time.time()
+            reply_dict = dict()
+            reply_dict["status_code"] = None
+            reply_dict["text"] = None
+            reply_dict["url"] = None
+
             # Send request with query
             try:
-                query_time = time.time()
-
                 r = self.session.post(self.addABoxData_url, headers=headers, data=json.dumps(query))
 
-                reply_time = time.time()
-                reply_dict = dict()
-                reply_dict["status_code"] = r.status_code
-                reply_dict["text"] = r.text
-                reply_dict["url"] = r.url
-
-                QueryLogger.log_entry(label="add_abox_data", time_query=query_time, query_json=query, time_reply=reply_time, reply_json=reply_dict)
+                if type(r) is dict:
+                    if "status_code" in r and "text" in r and "url" in r:
+                        reply_dict["status_code"] = r.status_code
+                        reply_dict["text"] = r.text
+                        reply_dict["url"] = r.url
 
             except Exception as e:
                 print('addABoxData failed at http request')
                 print(e)
                 return False
+            finally:
+                reply_time = time.time()
+                QueryLogger.log_entry(label="add_abox_data", time_query=query_time, query_json=query,
+                                      time_reply=reply_time, reply_json=reply_dict)
 
             # Logout
             self.logout()
@@ -122,25 +128,29 @@ class WebGenesisClient:
             # Prepare headers
             headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
 
+            query_time = time.time()
+            reply_dict = dict()
+            reply_dict["status_code"] = None
+            reply_dict["text"] = None
+            reply_dict["url"] = None
+
             # Send request with query
             try:
-                query_time = time.time()
                 r = self.session.post(self.removeABoxData_url, headers=headers, data=json.dumps(query))
-                print(r.text)
 
-                reply_time = time.time()
-                reply_dict = dict()
-                reply_dict["status_code"] = r.status_code
-                reply_dict["text"] = r.text
-                reply_dict["url"] = r.url
-
-                QueryLogger.log_entry(label="remove_abox_data", time_query=query_time, query_json=query,
-                                      time_reply=reply_time, reply_json=reply_dict)
-
+                if type(r) is dict:
+                    if "status_code" in r and "text" in r and "url" in r:
+                        reply_dict["status_code"] = r.status_code
+                        reply_dict["text"] = r.text
+                        reply_dict["url"] = r.url
             except Exception as e:
                 print('removeABoxData failed at http request')
                 print(e)
                 return False
+            finally:
+                reply_time = time.time()
+                QueryLogger.log_entry(label="remove_abox_data", time_query=query_time, query_json=query,
+                                      time_reply=reply_time, reply_json=reply_dict)
 
             # Logout
             self.logout()
@@ -157,23 +167,29 @@ class WebGenesisClient:
 
             headers = {'Content-type': 'application/x-www-form-urlencoded'}
 
+            query_time = time.time()
+            reply_dict = dict()
+            reply_dict["status_code"] = None
+            reply_dict["text"] = None
+            reply_dict["url"] = None
+
             # Send request with query
             try:
-                query_time = time.time()
                 r = self.session.post(self.sparql_url, headers=headers, params={'query': query, 'output': 'json'})
 
-                reply_time = time.time()
-                reply_dict = dict()
-                reply_dict["status_code"] = r.status_code
-                reply_dict["text"] = r.text
-                reply_dict["url"] = r.url
-
-                QueryLogger.log_entry(label="execute_sparql_select", time_query=query_time, query_json=query,
-                                      time_reply=reply_time, reply_json=reply_dict)
+                if type(r) is dict:
+                    if "status_code" in r and "text" in r and "url" in r:
+                        reply_dict["status_code"] = r.status_code
+                        reply_dict["text"] = r.text
+                        reply_dict["url"] = r.url
             except Exception as e:
                 print('Select failed at SPARQL request')
                 print(e)
                 return False
+            finally:
+                reply_time = time.time()
+                QueryLogger.log_entry(label="execute_sparql_select", time_query=query_time, query_json=query,
+                                      time_reply=reply_time, reply_json=reply_dict)
 
             # Logout
             self.logout()

@@ -9,7 +9,7 @@ import json
 
 QUERY_LOG_ENABLED = False
 PATH_QUERY_FOLDER = "./loggers/logs/query_logs/"
-BATCH_SIZE = 1
+BATCH_SIZE = 100
 
 
 class QueryLogger:
@@ -46,23 +46,24 @@ class QueryLogger:
         """
         Writes the entries to folder.
         """
-        try:
-            # print("Writing Batch queries")
+        if QUERY_LOG_ENABLED:
+            try:
+                # print("Writing Batch queries")
 
-            p = path_log + "web_gen_requests.json"
-            with open(p) as feedsjson:
-                feeds = json.load(feedsjson)
+                p = path_log + "web_gen_requests.json"
+                with open(p) as feedsjson:
+                    feeds = json.load(feedsjson)
 
-            for entry in QueryLogger._entries:
-                feeds.append(entry)
+                for entry in QueryLogger._entries:
+                    feeds.append(entry)
 
-            with open(p, mode='w') as f:
-                f.write(json.dumps(feeds, indent=2))
+                with open(p, mode='w') as f:
+                    f.write(json.dumps(feeds, indent=2))
 
-            QueryLogger._entries = []
-            return True
-        except (OSError, IOError, Exception) as e:
-            print("Error at query logger (writing file):")
-            print(e)
-            QueryLogger._entries = []  # even if the write isn't successful clear the entries
-            return False
+                QueryLogger._entries = []
+                return True
+            except (OSError, IOError, Exception) as e:
+                print("Error at query logger (writing file):")
+                print(e)
+                QueryLogger._entries = []  # even if the write isn't successful clear the entries
+                return False

@@ -31,13 +31,13 @@ class LoadCredentials:
         try:
             cred['api_key'] = os.environ[LoadCredentials._api_key_env]
             cred['kafka_brokers_sasl'] = os.environ[LoadCredentials._kafka_brokers_sasl_env]
+            cred['kafka_brokers_sasl'] = cred['kafka_brokers_sasl'].split(',')
         except:
             # If failed reading the env vars, then try to load the values from the local file (as was previously)
             bus_cred_file = "bus_credentials.json"
+            print("Loading values form file instead:" + bus_cred_file)
             with open(bus_cred_file) as f:
                 return json.load(f)
-
-        cred['kafka_brokers_sasl'] = cred['kafka_brokers_sasl'].split(',')
 
         return cred
 
@@ -60,11 +60,11 @@ class LoadCredentials:
             print("Loading values form file instead:" + wg_cred_path)
             with open(wg_cred_path, 'r') as f:
                 return json.load(f)
-
-        with open(LoadCredentials._wg_entrypoint_file, "r") as f:
-            wg = json.load(f)
-        cred['hostname'] = wg['hostname']
-        cred['ontology_entry_id'] = wg['ontology_entry_id']
+        finally:
+            with open(LoadCredentials._wg_entrypoint_file, "r") as f:
+                wg = json.load(f)
+            cred['hostname'] = wg['hostname']
+            cred['ontology_entry_id'] = wg['ontology_entry_id']
 
         return cred
 
@@ -72,5 +72,6 @@ class LoadCredentials:
 if __name__ == "__main__":
     # os.environ["WG_PASSWORD"] = "XXX_pass"
     # os.environ["WG_USERNAME"] = "XXX_username"
-    print(LoadCredentials.load_wg_credentials())
-    print(LoadCredentials.load_bus_credentials())
+    crebus = LoadCredentials.load_bus_credentials()
+    crewg = LoadCredentials.load_wg_credentials()
+    print(crewg)
