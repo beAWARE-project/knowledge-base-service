@@ -7,7 +7,7 @@ if greater than 1, then the final entries might not be written (use QuerryLogger
 
 import json
 
-QUERY_LOG_ENABLED = False
+QUERY_LOG_ENABLED = True
 PATH_QUERY_FOLDER = "./loggers/logs/query_logs/"
 BATCH_SIZE = 100
 

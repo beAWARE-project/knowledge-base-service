@@ -97,6 +97,11 @@ class WebGenesisClient:
                         reply_dict["text"] = r.text
                         reply_dict["url"] = r.url
 
+                if type(r) is requests.models.Response:
+                    reply_dict["status_code"] = r.status_code
+                    reply_dict["text"] = r.text
+                    reply_dict["url"] = r.url
+
             except Exception as e:
                 print('addABoxData failed at http request')
                 print(e)
@@ -143,11 +148,18 @@ class WebGenesisClient:
                         reply_dict["status_code"] = r.status_code
                         reply_dict["text"] = r.text
                         reply_dict["url"] = r.url
+
+                if type(r) is requests.models.Response:
+                    reply_dict["status_code"] = r.status_code
+                    reply_dict["text"] = r.text
+                    reply_dict["url"] = r.url
+
             except Exception as e:
                 print('removeABoxData failed at http request')
                 print(e)
                 return False
             finally:
+                print('now logging query')
                 reply_time = time.time()
                 QueryLogger.log_entry(label="remove_abox_data", time_query=query_time, query_json=query,
                                       time_reply=reply_time, reply_json=reply_dict)
@@ -182,6 +194,12 @@ class WebGenesisClient:
                         reply_dict["status_code"] = r.status_code
                         reply_dict["text"] = r.text
                         reply_dict["url"] = r.url
+
+                if type(r) is requests.models.Response:
+                    reply_dict["status_code"] = r.status_code
+                    reply_dict["text"] = r.text
+                    reply_dict["url"] = r.url
+
             except Exception as e:
                 print('Select failed at SPARQL request')
                 print(e)
