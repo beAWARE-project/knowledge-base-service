@@ -826,7 +826,7 @@ class Reasoner:
 
         # Set district if not set (TEMP)
         if message['header']['district'] == "":
-            message['header']['district'] = "Vicenza"
+            message['header']['district'] = "Valencia"
 
         # Check if expiration time is set and hard code it
         if "expirationTimeUTC" in message["body"]:
