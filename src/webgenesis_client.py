@@ -1381,7 +1381,7 @@ class WebGenesisClient:
 
             if most_common_type == 'Flood' or most_common_type == 'Overflow':
                 return 'Met'
-            elif most_common_type == 'Fire':
+            elif most_common_type == 'Fire' or most_common_type == 'Smoke':
                 return 'Fire'
             elif most_common_type == 'Traffic':
                 return 'Transport'
