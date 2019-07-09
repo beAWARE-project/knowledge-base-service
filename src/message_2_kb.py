@@ -1006,7 +1006,9 @@ class Message2KB:
             "motorcycle": "Motorcycle",
             "train": "Vehicle",
             "person": "Human",
-            "dummy": "Human"
+            "dummy": "Human",
+            "dog": "Dog",
+            "cat": "Cat"
         }
 
         try:
@@ -1027,7 +1029,8 @@ class Message2KB:
             "precipitation": "Precipitation",
             "collapse": "Collapse",
             "other": "OtherIncident",
-            "incident": "OtherIncident"
+            "incident": "OtherIncident",
+            "smoke": "Smoke"
         }
 
         try:
