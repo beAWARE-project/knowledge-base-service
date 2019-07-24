@@ -40,8 +40,6 @@ if __name__ == "__main__":
     # with open("webgenesis_credentials.json", "r") as f:
     #     webgenesis_configuration = json.load(f)
 
-    clear_KB_v3.main()
-
     webgenesis_configuration = load_credentials.LoadCredentials.load_wg_credentials()
 
     topics = [
@@ -65,6 +63,8 @@ if __name__ == "__main__":
     print("***********************\n" + '\033[0m')
     
     print("WebGenesis URL:", webgenesis_configuration["hostname"])
+
+    clear_KB_v3.main()
 
     kb_service = KBService(listen_to_topics=topics, webgenesis_conf=webgenesis_configuration)
     kb_service.run_service()
