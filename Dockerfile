@@ -9,6 +9,7 @@ COPY requirements.txt /usr/src/knowledge-base-service/
 WORKDIR /usr/src/knowledge-base-service/
 
 # Install any needed packages specified in requirements.txt
+RUN pip3 install --upgrade pip 
 RUN pip3 install --trusted-host pypi.python.org -r requirements.txt
 RUN rm requirements.txt
 
