@@ -152,7 +152,7 @@ class Message2KB:
         # For each attachment
         for index, attachment in enumerate(attachments):
 
-            # If attachement type is empty, do nothing
+            # If attachment type is empty, do nothing
             if attachment["attachmentType"] == "":
                 print("Attachment type was not defined.")
                 return
@@ -1008,10 +1008,12 @@ class Message2KB:
             "person": "Human",
             "dummy": "Human",
             "dog": "Dog",
-            "cat": "Cat"
+            "cat": "Cat",
+            "wheelchairuser": "WheelchairUser"
         }
 
         try:
+            print("vulnerable objects: "+str(objects_dictionary[obj]))
             return objects_dictionary[obj]
         except Exception as e:
             print(e)
@@ -1034,6 +1036,7 @@ class Message2KB:
         }
 
         try:
+            print("incident types: " +str(incidents_dictionary[incident_type]))
             return "http://beaware-project.eu/beAWARE/#" + incidents_dictionary[incident_type]
         except Exception as e:
             print(e)
