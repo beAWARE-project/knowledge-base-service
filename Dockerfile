@@ -15,5 +15,5 @@ WORKDIR /usr/src/knowledge-base-service/
 #clear sqlite
 RUN python3 clear_KB_v3.py
 
-# Run app.py when the container launches
+# Run kb_service.py when the container launches
 # CMD ["python3", "kb_service.py"]
