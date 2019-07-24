@@ -60,7 +60,7 @@ class LoadCredentials:
             wg_cred_path = "webgenesis_credentials.json"
             print("Loading values form file instead:" + wg_cred_path)
             with open(wg_cred_path, 'r') as f:
-                return json.load(f)
+                cred = json.load(f)
         finally:
             with open(LoadCredentials._wg_entrypoint_file, "r") as f:
                 wg = json.load(f)
