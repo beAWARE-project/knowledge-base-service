@@ -6,15 +6,18 @@ if greater than 1, then the final entries might not be written (use QuerryLogger
 """
 
 import json
+import time
+import os
 
-QUERY_LOG_ENABLED = True
-PATH_QUERY_FOLDER = "./loggers/logs/query_logs/"
+QUERY_LOG_ENABLED = False
+PATH_QUERY_DEFAULT_FOLDER = "./loggers/logs/query_logs/"
 BATCH_SIZE = 100
 
 
 class QueryLogger:
     _entries = []
     _ascending_id = 1
+    _WG_FILE_LOGS = "wg_requests" + str(int(time.time())) + ".txt"
 
     @staticmethod
     def log_entry(label, time_query, query_json, time_reply, reply_json):
@@ -42,28 +45,54 @@ class QueryLogger:
         return QueryLogger._log_queries_json()
 
     @staticmethod
-    def _log_queries_json(path_log=PATH_QUERY_FOLDER):
+    def _log_queries_json(path_log=PATH_QUERY_DEFAULT_FOLDER):
         """
         Writes the entries to folder.
         """
         if QUERY_LOG_ENABLED:
-            try:
-                # print("Writing Batch queries")
+            # QueryLogger._write_json_array(path_log)
+            QueryLogger._append_json(path_log)
 
-                p = path_log + "web_gen_requests.json"
-                with open(p) as feedsjson:
-                    feeds = json.load(feedsjson)
+    @staticmethod
+    def _append_json(path_log):
+        """ Check if file exists and append the entries (the resulted file is not valid json)"""
+        p = path_log+QueryLogger._WG_FILE_LOGS
+        try:
 
+            with open(p, 'a') as f:
                 for entry in QueryLogger._entries:
-                    feeds.append(entry)
-
-                with open(p, mode='w') as f:
-                    f.write(json.dumps(feeds, indent=2))
-
+                    f.write("ENTRY: "+json.dumps(entry) + os.linesep)
                 QueryLogger._entries = []
                 return True
-            except (OSError, IOError, Exception) as e:
-                print("Error at query logger (writing file):")
-                print(e)
-                QueryLogger._entries = []  # even if the write isn't successful clear the entries
-                return False
+        except (OSError, IOError, Exception) as e:
+            print("Error at query logger (writing file):")
+            print(e)
+            QueryLogger._entries = []  # even if the write isn't successful clear the entries
+            return False
+
+
+    @staticmethod
+    def _write_json_array(path_log):
+        try:
+            # print("Writing Batch queries")
+
+            p = path_log + QueryLogger._WG_FILE_LOGS
+            print("Query logger path:")
+            print(p)
+
+            with open(p) as feedsjson:
+                feeds = json.load(feedsjson)
+
+            for entry in QueryLogger._entries:
+                feeds.append(entry)
+
+            with open(p, mode='w') as f:
+                f.write(json.dumps(feeds, indent=2))
+
+            QueryLogger._entries = []
+            return True
+        except (OSError, IOError, Exception) as e:
+            print("Error at query logger (writing file):")
+            print(e)
+            QueryLogger._entries = []  # even if the write isn't successful clear the entries
+            return False
