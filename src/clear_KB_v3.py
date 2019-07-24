@@ -92,14 +92,14 @@ def remove_instances(webgenesis_client):
     print("Deletion complete")
 
 
-if __name__ == "__main__":
+def main():
     # with open("webgenesis_credentials.json", "r") as f:
     #     webgenesis_configuration = json.load(f)
     webgenesis_configuration = load_credentials.LoadCredentials.load_wg_credentials()
 
     wg = WebGenesisClient(webgenesis_configuration)
 
-    print("Initiating process...")
+    # print("Initiating process...")
 
     # Remove instances from WG
     # print(">> Removing instances from WG")
@@ -108,3 +108,7 @@ if __name__ == "__main__":
     # Remove report texts from SQLite database
     print(">> Removing report texts from SQLite DB")
     wg.delete_all_incident_report_texts_in_sqlite()
+
+
+if __name__ == "__main__":
+    main()

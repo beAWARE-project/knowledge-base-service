@@ -3,6 +3,7 @@ from message_listener import ListenerThread
 from incoming_messages_handler import IncomingMessagesHandler
 import time
 import load_credentials
+import clear_KB_v3
 
 
 class KBService:
@@ -39,6 +40,9 @@ if __name__ == "__main__":
     # with open("webgenesis_credentials.json", "r") as f:
     #     webgenesis_configuration = json.load(f)
 
+    # clear the sqlite base
+    clear_KB_v3.main()
+
     webgenesis_configuration = load_credentials.LoadCredentials.load_wg_credentials()
 
     topics = [
@@ -65,5 +69,3 @@ if __name__ == "__main__":
 
     kb_service = KBService(listen_to_topics=topics, webgenesis_conf=webgenesis_configuration)
     kb_service.run_service()
-
-    print("NOW IT WOULD START")

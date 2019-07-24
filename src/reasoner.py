@@ -26,6 +26,10 @@ class Reasoner:
                 pass
 
     def top021_incident_report(self):
+        """
+        if alert -> sends 101
+        if update and not(type==video/image/"") -> send 101
+        """
 
         # Copy incoming message
         outgoing_message = self.incoming_message
@@ -80,10 +84,24 @@ class Reasoner:
         outgoing_message['body']['severity'] = self.webgenesis_client.get_incident_cluster_severity(
             outgoing_message['body']['incidentID'])
 
-        # Produce outgoing message
-        self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
+        if Reasoner._proceed_with_TOP101(outgoing_message):
+            # Produce outgoing message
+            self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
+            print(">> TOP101 Incident report sent to PSAP")
+        else:
+            print("TOP101 is of type image or video, no TOP101 will be sent")
 
-        print(">> TOP101 Incident report sent to PSAP")
+    @staticmethod
+    def _proceed_with_TOP101(message):
+        """when there are attachements in the msg and they have attachmentType == video/image then do not send 101"""
+        try:
+            attachment_type = message['body']['attachments'][0]["attachmentType"]
+            if attachment_type == "image" or attachment_type == "video":
+                return False
+            else:
+                return True
+        except:
+            return True
 
     def top018_image_analyzed(self):
         try:

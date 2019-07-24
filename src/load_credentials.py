@@ -23,6 +23,7 @@ class LoadCredentials:
     def load_bus_credentials():
         """
         Load the values from environment variables
+        if they cannot be found on environment try to load from local file "bus_credentials.json"
 
         :return: dictionary with keys ['api_key', 'kafka_admin_url', 'kafka_brokers_sasl']
         """
@@ -74,4 +75,4 @@ if __name__ == "__main__":
     # os.environ["WG_USERNAME"] = "XXX_username"
     crebus = LoadCredentials.load_bus_credentials()
     crewg = LoadCredentials.load_wg_credentials()
-    print(crewg)
+    print("credentials loaded")
