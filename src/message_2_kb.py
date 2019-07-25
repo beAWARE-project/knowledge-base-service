@@ -3,7 +3,7 @@ from webgenesis_client import WebGenesisClient
 import requests
 import time
 from loggers.time_logger import TimeLogger
-
+from Utilities import add_preferredURI
 
 class Message2KB:
     @TimeLogger.timer_decorator(tags=["message2KB"])
@@ -60,6 +60,8 @@ class Message2KB:
             }
         }
 
+        add_preferredURI(data_dict["location_" + incident_id])
+
         # Add incident report
         data_dict["incident_report_" + incident_id] = {
             "type": "IncidentReport",
@@ -70,6 +72,7 @@ class Message2KB:
                 "incidentReportTimeStamp": self.message["body"]["startTimeUTC"]
             }
         }
+        add_preferredURI(data_dict["incident_report_" + incident_id])
 
         # Add originator (if given)
         if self.message["body"]["incidentOriginator"] and self.message["body"]["incidentOriginator"] != '':
@@ -89,6 +92,7 @@ class Message2KB:
                     "hasMediaItemName": "Description from incident report " + incident_id
                 }
             }
+            add_preferredURI(data_dict["description_" + incident_id])
 
             # Add description to incident report
             data_dict["incident_report_" + incident_id]["properties"]["hasDescription"] = "description_" + incident_id
@@ -166,6 +170,7 @@ class Message2KB:
                     "isAttachmentOf": "incident_report_" + incident_id
                 }
             }
+            add_preferredURI(data_dict["attachment_" + incident_id + "_" + str(index)])
 
         # Select incident by URI
         data_dict["incident_report_" + incident_id] = {
@@ -211,6 +216,7 @@ class Message2KB:
                     "hasIncidentPriority": "undefined"
                 }
             }
+            add_preferredURI(data_dict["dataset_incident_" + incident_id])
 
             # Select incident type by URI
             data_dict["incident_type"] = {
@@ -233,6 +239,7 @@ class Message2KB:
                         "participantIsInvolvedIn": "dataset_incident_" + incident_id
                     }
                 }
+                add_preferredURI(data_dict["vulnerable_object_" + target_id])
 
                 # Add detection
                 data_dict["detection_" + target_id] = {
@@ -244,6 +251,7 @@ class Message2KB:
                         "hasDetectionTimestamp": timestamp
                     }
                 }
+                add_preferredURI(data_dict["detection_" + target_id])
 
                 target_counter += 1
                 detections_list.append("detection_" + target_id)
@@ -256,6 +264,7 @@ class Message2KB:
                     "hasDatasetResultsSource": results_file_url
                 }
             }
+            add_preferredURI(data_dict["dataset_" + incident_id])
 
             if detections_list:
                 data_dict["dataset_" + incident_id]["properties"]["containsDetection"] = detections_list
@@ -268,6 +277,7 @@ class Message2KB:
                     "taskProducesDataset": "dataset_" + incident_id
                 }
             }
+            add_preferredURI(data_dict["image_analysis_" + incident_id])
 
         except Exception as e:
             print("Error 2 @ Message2KB.top018_image_analyzed")
@@ -322,6 +332,7 @@ class Message2KB:
                     "hasIncidentPriority": "undefined"
                 }
             }
+            add_preferredURI(data_dict["dataset_incident_" + incident_id])
 
             # Select incident type by URI
             data_dict["incident_type"] = {
@@ -341,6 +352,7 @@ class Message2KB:
                         "participantIsInvolvedIn": "dataset_incident_" + incident_id
                     }
                 }
+                add_preferredURI(data_dict["vulnerable_object_" + target_id])
 
                 # Add detection
                 data_dict["detection_" + target_id] = {
@@ -356,6 +368,7 @@ class Message2KB:
                         "hasDetectionRisk": target["risk"],
                     }
                 }
+                add_preferredURI(data_dict["detection_" + target_id])
 
                 target_counter += 1
                 detections_list.append("detection_" + target_id)
@@ -368,6 +381,7 @@ class Message2KB:
                     "hasDatasetResultsSource": results_file_url
                 }
             }
+            add_preferredURI(data_dict["dataset_" + incident_id])
 
             if detections_list:
                 data_dict["dataset_" + incident_id]["properties"]["containsDetection"] = detections_list
@@ -380,6 +394,7 @@ class Message2KB:
                     "taskProducesDataset": "dataset_" + incident_id
                 }
             }
+            add_preferredURI(data_dict["video_analysis_" + incident_id])
 
         except Exception as e:
             print("Error 2 @ Message2KB.top017_video_analyzed")
@@ -442,6 +457,7 @@ class Message2KB:
                 "type": "Detection",
                 "properties": {}
             }
+            add_preferredURI(data_dict["detection_" + target_id])
 
             # Check if the target type matches with an incident type (flood, fire, etc.)
             incident_type = self.find_first_common_element(target["type"], incident_types)
@@ -454,6 +470,7 @@ class Message2KB:
                         "isOfIncidentType": "incident_type_" + target_id
                     }
                 }
+                add_preferredURI(data_dict["incident_" + target_id])
 
                 # TODO: Add incident location, when the MTA starts discovering locations
 
@@ -489,6 +506,7 @@ class Message2KB:
                     "properties": {
                     }
                 }
+                add_preferredURI(data_dict["vulnerable_object_" + target_id])
 
                 # Add participant to detection
                 data_dict["detection_" + target_id]["properties"][
@@ -529,6 +547,7 @@ class Message2KB:
             "properties": {
             }
         }
+        add_preferredURI(data_dict["dataset_" + incident_id])
 
         # If any vulnerable objects were found among targets, add them to dataset
         if detections_list:
@@ -542,6 +561,7 @@ class Message2KB:
                 "taskProducesDataset": "dataset_" + incident_id
             }
         }
+        add_preferredURI(data_dict["text_analysis_" + incident_id])
 
         # Check if incident report has an attachment
         attachment_uri_list = self.webgenesis_client.get_attachments_of_incident_report(incident_id)
@@ -626,6 +646,7 @@ class Message2KB:
                 "longitude": position_longitude
             }
         }
+        add_preferredURI(data_dict["location_" + incident_id])
 
         # Add incident report
         data_dict["incident_report_" + incident_id] = {
@@ -637,6 +658,7 @@ class Message2KB:
                 "incidentReportTimeStamp": self.message["body"]["startTimeUTC"]
             }
         }
+        add_preferredURI(data_dict["incident_report_" + incident_id])
 
         # Add attachment
         data_dict["attachment_" + incident_id] = {
@@ -648,6 +670,7 @@ class Message2KB:
                 "isAttachmentOf": "incident_report_" + incident_id
             }
         }
+        add_preferredURI(data_dict["attachment_" + incident_id])
 
         # Query dictionary
         query_dict = {
@@ -684,6 +707,7 @@ class Message2KB:
                 "longitude": position_longitude
             }
         }
+        add_preferredURI(data_dict["location_" + incident_id])
 
         # Add incident report
         data_dict["incident_report_" + incident_id] = {
@@ -695,6 +719,7 @@ class Message2KB:
                 "incidentReportTimeStamp": self.message["body"]["startTimeUTC"]
             }
         }
+        add_preferredURI(data_dict["incident_report_" + incident_id])
 
         # For each attachment
         for index, attachment in enumerate(attachments):
@@ -707,6 +732,7 @@ class Message2KB:
                     "isAttachmentOf": "incident_report_" + incident_id
                 }
             }
+            add_preferredURI(data_dict["attachment_" + incident_id + "_" + str(index)])
 
         # Query dictionary
         query_dict = {
@@ -760,6 +786,7 @@ class Message2KB:
                 "longitude": position_longitude
             }
         }
+        add_preferredURI(data_dict["location_" + incident_id])
 
         # Add incident report
         data_dict["incident_report_" + incident_id] = {
@@ -770,6 +797,7 @@ class Message2KB:
                 "incidentReportTimeStamp": media_timestamp
             }
         }
+        add_preferredURI(data_dict["incident_report_" + incident_id])
 
         # Add attachment
         data_dict["attachment_" + incident_id] = {
@@ -782,6 +810,7 @@ class Message2KB:
                 "hasAnalyzedMediaSource": analyzed_file_url
             }
         }
+        add_preferredURI(data_dict["attachment_" + incident_id])
 
         # Add dataset incident
         data_dict["dataset_incident_" + incident_id] = {
@@ -792,6 +821,7 @@ class Message2KB:
                 "hasIncidentPriority": "undefined"
             }
         }
+        add_preferredURI(data_dict["dataset_incident_" + incident_id])
 
         # Select incident type by URI
         data_dict["incident_type"] = {
@@ -806,6 +836,7 @@ class Message2KB:
                 "hasDatasetResultsSource": results_file_url
             }
         }
+        add_preferredURI(data_dict["dataset_" + incident_id])
 
         # For each detection (target)
         target_counter = 0
@@ -820,6 +851,7 @@ class Message2KB:
                     "participantIsInvolvedIn": "dataset_incident_" + incident_id
                 }
             }
+            add_preferredURI(data_dict["vulnerable_object_" + target_id])
 
             # Add detection
             data_dict["detection_" + target_id] = {
@@ -833,6 +865,7 @@ class Message2KB:
                     "hasDetectionRisk": target["risk"],
                 }
             }
+            add_preferredURI(data_dict["detection_" + target_id])
 
             target_counter += 1
             detections_list.append("detection_" + target_id)
@@ -848,6 +881,7 @@ class Message2KB:
                 "taskProducesDataset": "dataset_" + incident_id
             }
         }
+        add_preferredURI(data_dict["video_analysis_" + incident_id])
 
         # Query dictionary
         query_dict = {
@@ -886,6 +920,7 @@ class Message2KB:
                 "longitude": position_longitude
             }
         }
+        add_preferredURI(data_dict["location_" + incident_id])
 
         # Add incident report
         data_dict["incident_report_" + incident_id] = {
@@ -897,6 +932,7 @@ class Message2KB:
                 "incidentReportTimeStamp": self.message["body"]["startTimeUTC"]
             }
         }
+        add_preferredURI(data_dict["incident_report_" + incident_id])
 
         # Add originator (if given)
         if self.message["body"]["incidentOriginator"] and self.message["body"]["incidentOriginator"] != '':
@@ -912,6 +948,7 @@ class Message2KB:
                 "hasMediaItemName": "Description from incident report " + incident_id
             }
         }
+        add_preferredURI(data_dict["description_" + incident_id])
 
         # Add description to incident report
         data_dict["incident_report_" + incident_id]["properties"]["hasDescription"] = "description_" + incident_id
@@ -924,6 +961,7 @@ class Message2KB:
                 "taskProducesDataset": "dataset_" + incident_id
             }
         }
+        add_preferredURI(data_dict["analysis_" + incident_id])
 
         # Add dataset
         data_dict["dataset_" + incident_id] = {
@@ -932,6 +970,7 @@ class Message2KB:
                 "detectsDatasetIncident": "dataset_incident_" + incident_id
             }
         }
+        add_preferredURI(data_dict["dataset_" + incident_id])
 
         # Add dataset incident
         data_dict["dataset_incident_" + incident_id] = {
@@ -942,6 +981,7 @@ class Message2KB:
                 "hasIncidentPriority": "undefined"
             }
         }
+        add_preferredURI(data_dict["dataset_incident_" + incident_id])
 
         # Select incident type by URI
         data_dict["incident_type"] = {
