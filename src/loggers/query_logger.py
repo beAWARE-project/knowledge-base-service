@@ -9,7 +9,7 @@ import json
 import time
 import os
 
-QUERY_LOG_ENABLED = False
+QUERY_LOG_ENABLED = True
 PATH_QUERY_DEFAULT_FOLDER = "./loggers/logs/query_logs/"
 BATCH_SIZE = 100
 

@@ -50,7 +50,6 @@ class Reasoner:
 
             # Insert the PSAP incident ID to the KB
             self.webgenesis_client.set_incident_report_psap_id(incident_id, psap_incident_id)
-
             # Set the PSAP incident ID to the TOP101 message
             outgoing_message['body']['incidentID'] = psap_incident_id
 
@@ -703,6 +702,49 @@ class Reasoner:
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
 
         print(">> TOP101 Incident report sent to PSAP")
+
+    def top801_incident_validation(self):
+        try:
+            incident_id = self.incoming_message['body']['incidentID']
+            spam_flag = self.incoming_message['body']['spam']
+        except Exception as e:
+            print("Error 1 @ Reasoner.top801_incident_validation")
+            print("Error in message TOP040:\n", e)
+            return
+
+        if not isinstance(spam_flag, bool):
+            return
+
+        ## Send message to PSAP
+        # Get previous incident report text
+        try:
+            # outgoing_message = json.loads(self.webgenesis_client.get_incident_report_text(incident_id))
+            outgoing_message = json.loads(self.webgenesis_client.get_incident_report_text_from_sqlite(incident_id))
+        except Exception as e:
+            print("Error 2 @ Reasoner.top801_incident_validation")
+            print("Error retrieving previous incident report text:\n", e)
+            return
+
+        # Change topic name in header
+        outgoing_message['header']['topicName'] = "TOP101_INCIDENT_REPORT"
+        outgoing_message['body']['spam'] = spam_flag
+
+        # Find psap id
+        psap_id = self.webgenesis_client.get_incident_report_psap_id(incident_id)
+
+        # Change incident id to PSAP incident id
+        outgoing_message['body']['incidentID'] = psap_id
+
+        # Get the location (lat,long) of the psap incident
+        psap_indicent_location = self.webgenesis_client.get_location_of_incident_report(outgoing_message['body']['incidentID'])
+        if psap_indicent_location is not None:
+            outgoing_message['body']['position']['latitude'] = psap_indicent_location["lat"]
+            outgoing_message['body']['position']['longitude'] = psap_indicent_location["long"]
+
+        # Produce outgoing message
+        self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
+
+        print(">> TOP101 Incident report with spam flag was sent to PSAP")
 
     def request_report_from_generator(self, incident_id, psap_id, language, priority="undefined", severity="undefined"):
         outgoing_message = {

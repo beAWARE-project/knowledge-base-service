@@ -613,7 +613,6 @@ class Message2KB:
             print("Error 1 @ Message2KB.top040_text_report_generated")
             print("Error in message:\n", e)
             return
-
         # TODO: Decide if needed to create hasTitle, hasDescription properties in ontology and instantiate them with these values
 
     @TimeLogger.timer_decorator(tags=["top001"])
@@ -1016,6 +1015,22 @@ class Message2KB:
             report_id=incident_id,
             severity_value=severity
         )
+
+    @TimeLogger.timer_decorator(tags=["top801"])
+    def top801_incident_validation(self):
+        print(">> TOP801 Incident validation received from VAL")
+
+        try:
+            incident_id = self.message['body']['incidentID']
+            spam_flag = self.message['body']['spam']
+        except Exception as e:
+            print("Error 1 @ Message2KB.top801_incident_validation")
+            print("Error in message:\n", e)
+            return
+
+        # Set incident report spam flag to WebGenesis
+        if isinstance(spam_flag, bool):
+            self.webgenesis_client.set_spam_flag(incident_id, spam_flag)
 
     def insert_into_webgenesis(self, json_query):
         self.webgenesis_client.add_abox_data(json_query)

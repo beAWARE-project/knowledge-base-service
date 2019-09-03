@@ -54,7 +54,8 @@ if __name__ == "__main__":
         'TOP019_UAV_media_analyzed',
         'TOP112_SUMMARY_TRIGGER',
         'TOP006_INCIDENT_REPORT_CRCL',
-        'TOP007_UPDATE_INCIDENT_RISK'
+        'TOP007_UPDATE_INCIDENT_RISK',
+        'TOP801_INCIDENT_VALIDATION'
     ]
 
     # Decorate terminal

@@ -1392,6 +1392,51 @@ class WebGenesisClient:
         else:
             return 'Other'
 
+    def get_spam_flag(self, report_id):
+        query = """
+                SELECT ?spam
+                WHERE {
+                   ?incident_report baw:hasReportID "%s" .
+                   ?incident_report baw:isSpam ?spam
+                }
+                """ % (report_id, )
+
+        try:
+            results = self.execute_sparql_select(query)
+
+            if results['results']['bindings']:
+                if results['results']['bindings'][0]["spam"]["value"] == "true":
+                    return True
+                elif results['results']['bindings'][0]["spam"]["value"] == "false":
+                    return False
+                else:
+                    return None
+            else:
+                return None
+
+        except Exception as e:
+            print("Error @ WebGenesisClient.get_spam_flag()")
+            print(e)
+            return None
+
+    def set_spam_flag(self, report_id, spam_value=False):
+        incident_report_uri = self.get_incident_report_uri(report_id)
+
+        # Insert PSAP incident id
+        insert_query = {
+            "defaultprefix": "http://beaware-project.eu/beAWARE/#",
+            "data": {
+                "incident": {
+                    "uri": incident_report_uri,
+                    "properties": {
+                        "isSpam": spam_value
+                    }
+                }
+            }
+        }
+
+        self.add_abox_data(json.dumps(insert_query))
+
     def utc_now(self):
         return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
