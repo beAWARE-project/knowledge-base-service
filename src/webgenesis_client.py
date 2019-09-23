@@ -774,7 +774,7 @@ class WebGenesisClient:
                         ?other_class rdfs:subClassOf ?type
                         FILTER (?other_class != ?type)
                     }
-                } GROUP BY ?participant_type ?confidence ?risk ?role ?number ?label
+                } GROUP BY ?participant ?participant_type ?confidence ?risk ?role ?number ?label
                     ORDER BY ?participant_type
                 """ % (incident_uri, incident_uri,)
         try:
@@ -1451,5 +1451,67 @@ if __name__ == "__main__":
     # Create webgenesis client
     c = WebGenesisClient(webgenesis_configuration)
 
-    print(c.execute_sparql_select(
-        """SELECT ?label WHERE {<http://beaware-project.eu/beAWARE/#Human> rdfs:label ?label} LIMIT 10"""))
+                            {
+                                ?dataset baw:detectsDatasetIncident ?incident .
+                            }
+                            UNION
+                            {
+                                ?detection baw:isDetectionOf ?dataset .
+                                ?detection baw:detectsIncident ?incident .
+                            }
+                            UNION
+                            {
+                                ?dataset baw:containsDetection ?detection .
+                                ?detection baw:detectsIncident ?incident .
+                            } .
+
+                            ?incident baw:hasIncidentLocation ?location .
+                        }
+
+                    }
+                """
+    query_psap = """
+                    SELECT ?psap_id 
+                    WHERE {
+                        ?incident_report baw:hasReportID 'INC_UAVP_@sinst-id-12ef3240-ccba-11e9-a234-615883b44fb6' .
+                        ?incident_report baw:hasPSAPIncidentID ?psap_id .
+                    }
+            """
+    query_018 = """
+                        SELECT ?incident_report ?prop ?obj 
+                        WHERE {
+                            ?incident_report baw:hasReportID 'INC_SCAPP_02134b2d12d64c7286375f24df40f4ff' .
+                            ?incident_report ?prop ?obj.
+                        }
+                """
+
+    print(json.dumps(c.execute_sparql_select(query=query_location), indent=2))
+    QueryLogger.flush_entries()
+    exit()
+
+    entry = {"label": "add_abox_data", "time_start": 1568014840.943328, "query": {"data": {
+        "location_8ecc4cb9-d2a4-47b9-ab53-dc955b26bfad": {"type": "Location",
+                                                          "properties": {"latitude": 39.36415, "longitude": -0.37133},
+                                                          "preferredUri": "http://beaware-project.eu/beAWARE/#Location_bc550098-0db9-4bf4-a235-d477f6ffd576"},
+        "incident_report_8ecc4cb9-d2a4-47b9-ab53-dc955b26bfad": {"type": "IncidentReport", "properties": {
+            "hasReportID": "8ecc4cb9-d2a4-47b9-ab53-dc955b26bfad",
+            "hasReportLocation": "location_8ecc4cb9-d2a4-47b9-ab53-dc955b26bfad",
+            "hasReportText": "{\n   \"header\": {\n      \"topicName\": \"TOP021_INCIDENT_REPORT\",\n      \"topicMajorVersion\": 0,\n      \"topicMinorVersion\": 3,\n      \"sender\": \"SCAPP\",\n      \"msgIdentifier\": \"b4605237-6d50-4670-ae00-823f576d112c_KBS_logs_10\",\n      \"sentUTC\": \"2019-03-07T12:30:44Z\",\n      \"status\": \"Actual\",\n      \"actionType\": \"Alert\",\n      \"specificSender\": \"mobileAppTechnicalUser\",\n      \"scope\": \"Restricted\",\n      \"district\": \"Valencia\",\n      \"recipients\": \"\",\n      \"code\": 0,\n      \"note\": \"\",\n      \"references\": \"\"\n   },\n   \"body\": {\n      \"incidentOriginator\": \"SCAPP\",\n      \"incidentID\": \"8ecc4cb9-d2a4-47b9-ab53-dc955b26bfad\",\n      \"language\": \"es-ES\",\n      \"startTimeUTC\": \"2019-09-09T07:38:31Z\",\n      \"title\": \"Report on valencia\",\n      \"position\": {\n         \"latitude\": 39.36415,\n         \"longitude\": -0.37133\n      },\n      \"description\": \"Lluvias fuertes\"\n   }\n}",
+            "incidentReportTimeStamp": "2019-09-09T07:38:31Z", "hasOriginator": "SCAPP",
+            "hasDescription": "description_8ecc4cb9-d2a4-47b9-ab53-dc955b26bfad"},
+                                                                 "preferredUri": "http://beaware-project.eu/beAWARE/#IncidentReport_799d81cc-d462-4d44-b824-6e6fefa6599c"},
+        "description_8ecc4cb9-d2a4-47b9-ab53-dc955b26bfad": {"type": "TextItem",
+                                                             "properties": {"hasRawMediaSource": "Lluvias fuertes",
+                                                                            "hasMediaItemTimestamp": "2019-09-09T07:38:31Z",
+                                                                            "hasMediaItemName": "Description from incident report 8ecc4cb9-d2a4-47b9-ab53-dc955b26bfad"},
+                                                             "preferredUri": "http://beaware-project.eu/beAWARE/#TextItem_d4430c67-a7c2-4e05-a132-364f2d0dd2a2"}},
+        "defaultprefix": "http://beaware-project.eu/beAWARE/#"},
+             "time_end": 1568014841.5304198, "reply_json": {"status_code": 500,
+                                                            "text": "{\"error\":{\"code\":\"500\",\"description\":\"An internal error occured.\\u003cbr /\\u003eThe details were sent to the administrator of the server.\"}}",
+                                                            "url": "https://beaware-1.eu-de.containers.appdomain.cloud/servlet/is/rest/entry/1932/addABoxData/"}}
+    query = entry['query']
+    query = json.dumps(query)
+    print(query)
+    print(c.add_abox_data(json_query=query))
+    # print(c.execute_sparql_select(
+    #     """SELECT ?label WHERE {<http://beaware-project.eu/beAWARE/#Human> rdfs:label ?label} LIMIT 10"""))
