@@ -1371,6 +1371,9 @@ class WebGenesisClient:
 
             for incident in incidents_of_cluster:
                 incident_types.append(self.get_type_of_incident(incident_uri=incident["incident_uri"]))
+            print("incidents types:" + str(incident_types))
+            incident_types = list(filter(lambda x: x != "Evacuation" and x != "Other", incident_types))
+            print("incidents types without evac/other:" + str(incident_types))
         except Exception as e:
             print("Error @ WebGenesisClient.get_incident_category()")
             print(e)
@@ -1399,7 +1402,7 @@ class WebGenesisClient:
                    ?incident_report baw:hasReportID "%s" .
                    ?incident_report baw:isSpam ?spam
                 }
-                """ % (report_id, )
+                """ % (report_id,)
 
         try:
             results = self.execute_sparql_select(query)

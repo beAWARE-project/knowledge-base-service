@@ -6,6 +6,7 @@ from math import radians, sin, cos, acos
 from random import randint, choice
 import string
 from loggers.time_logger import TimeLogger
+from Utilities import get_evac_status
 
 
 class Reasoner:
@@ -13,6 +14,10 @@ class Reasoner:
     def __init__(self, webgenesis_conf, message_json=None):
         self.conf = webgenesis_conf
         self.incoming_message = message_json
+
+        self.__default_cluster_radius = 500
+
+        self.__default_drone_cluster_radius = 100
 
         self.webgenesis_client = WebGenesisClient(self.conf)
 
@@ -28,7 +33,7 @@ class Reasoner:
     def top021_incident_report(self):
         """
         if alert -> sends 101
-        if update and not(type==video/image/"") -> send 101
+        if update and not(type=="video"/"image"/"") -> send 101
         """
 
         # Copy incoming message
@@ -469,14 +474,22 @@ class Reasoner:
             print("Error in message:\n", e)
             return
 
-        if not incident_detected:
+        evacuation = get_evac_status(self.incoming_message)
+        print("The evacuation status: " + str(evacuation))
+
+        # if not incident_detected and evacuation == 'end':
+        #     self.request_report_for_evac_end(incident_id,)
+        #     print(">> Report generation was requested from MRG")
+        #     return
+
+        if not incident_detected and evacuation != 'end':
             return
 
         # Perform reasoning
         self.run_reasoning()
 
         # Copy incoming message
-        outgoing_message = self.incoming_message
+        outgoing_message = json.loads(json.dumps(self.incoming_message))
 
         # Change topic name in header
         outgoing_message['header']['topicName'] = "TOP101_INCIDENT_REPORT"
@@ -505,7 +518,8 @@ class Reasoner:
 
         # Calculate the PSAP incident ID
         # Check if this incident is nearby previous incidents
-        psap_incident_id = self.calculate_psap_incident_id(incident_id, lat, long, cluster_radius=100)
+        psap_incident_id = self.calculate_psap_incident_id(incident_id, lat, long,
+                                                           cluster_radius=self.__default_drone_cluster_radius)
 
         # Insert the PSAP incident ID to the KB
         self.webgenesis_client.set_incident_report_psap_id(incident_id, psap_incident_id)
@@ -545,7 +559,8 @@ class Reasoner:
             psap_id=outgoing_message['body']['incidentID'],
             language=outgoing_message['body']['language'],
             priority=outgoing_message['body']['priority'],
-            severity=outgoing_message['body']['severity']
+            severity=outgoing_message['body']['severity'],
+            evacuation=evacuation
         )
 
         print(">> Report generation was requested from MRG")
@@ -736,7 +751,8 @@ class Reasoner:
         outgoing_message['body']['incidentID'] = psap_id
 
         # Get the location (lat,long) of the psap incident
-        psap_indicent_location = self.webgenesis_client.get_location_of_incident_report(outgoing_message['body']['incidentID'])
+        psap_indicent_location = self.webgenesis_client.get_location_of_incident_report(
+            outgoing_message['body']['incidentID'])
         if psap_indicent_location is not None:
             outgoing_message['body']['position']['latitude'] = psap_indicent_location["lat"]
             outgoing_message['body']['position']['longitude'] = psap_indicent_location["long"]
@@ -746,7 +762,8 @@ class Reasoner:
 
         print(">> TOP101 Incident report with spam flag was sent to PSAP")
 
-    def request_report_from_generator(self, incident_id, psap_id, language, priority="undefined", severity="undefined"):
+    def request_report_from_generator(self, incident_id, psap_id, language, priority="undefined", severity="undefined",
+                                      evacuation=None, position=None):
         outgoing_message = {
             "header": {
                 "status": "Actual",
@@ -766,11 +783,20 @@ class Reasoner:
             "body": {
                 "incidentID": incident_id,
                 "language": language,
-                "position": self.webgenesis_client.get_location_of_incident_report(psap_id),
+                # "position": self.webgenesis_client.get_location_of_incident_report(psap_id),
                 "priority": priority,
                 "severity": severity
             }
         }
+
+        if evacuation == 'end' or evacuation == "inProgress":
+            outgoing_message['body']['evacuation'] = evacuation
+
+        if position is None:
+            outgoing_message['body']['position'] = self.webgenesis_client.get_location_of_incident_report(psap_id)
+        else:
+            # TODO: typecheck
+            outgoing_message['body']['position'] = position
 
         # Get all incidents that belong to this psap id
         incidents_details_list = self.webgenesis_client.get_incidents_details_from_psap_incident_cluster(psap_id)
@@ -904,7 +930,9 @@ class Reasoner:
     def utc_plus_5_hours(self):
         return (datetime.utcnow() + timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    def calculate_psap_incident_id(self, report_id, lat, long, cluster_radius=50):
+    def calculate_psap_incident_id(self, report_id, lat, long, cluster_radius=None):
+        if cluster_radius is None:
+            cluster_radius = self.__default_cluster_radius
 
         if lat == "undefined" or long == "undefined":
             # TODO: Check if an incident within this incident report has a location to use

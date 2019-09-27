@@ -3,7 +3,8 @@ from webgenesis_client import WebGenesisClient
 import requests
 import time
 from loggers.time_logger import TimeLogger
-from Utilities import add_preferredURI
+from Utilities import add_preferredURI, get_evac_status
+
 
 class Message2KB:
     @TimeLogger.timer_decorator(tags=["message2KB"])
@@ -47,6 +48,11 @@ class Message2KB:
             print("Error 1 @ Message2KB.top021_incident_report_app_alert")
             print("Error in message:\n", e)
             return
+
+        # Update incident report text
+        temp_message = json.loads(json.dumps(self.message))
+        temp_message['header']['actionType'] = 'Update'
+        self.webgenesis_client.update_incident_report_text_in_sqlite(incident_id, json.dumps(temp_message, indent=3))
 
         # Data dictionary
         data_dict = {}
@@ -759,8 +765,17 @@ class Message2KB:
             print("Error in message:\n", e)
             return
 
-        if not incident_detected:
+        evacuation = get_evac_status(self.message)
+
+        print("The evacuation status: " + str(evacuation))
+
+        # TODO: if evac = end tote vale ena keno incident xwris tpt mesa ...
+        #  kai meta sunexise opws prin
+
+        if not incident_detected and evacuation != 'end':
             return
+        if evacuation=='end':
+            print("populating EVAC=END instance")
 
         # Get analysis results from json file
         try:
@@ -768,7 +783,9 @@ class Message2KB:
 
             media_item_name = results_json["sequence"]["name"]
             crisis_type = results_json["sequence"]["crisis_type"]
-            targets = results_json["sequence"]["targets"]
+            targets = []
+            if 'targets' in results_json["sequence"]:
+                targets = results_json["sequence"]["targets"]
         except Exception as e:
             print("Error 2 @ Message2KB.top019_uav_media_analyzed")
             print("Could not retrieve analysis results json file:\n", results_file_url, e)
@@ -822,10 +839,16 @@ class Message2KB:
         }
         add_preferredURI(data_dict["dataset_incident_" + incident_id])
 
-        # Select incident type by URI
-        data_dict["incident_type"] = {
-            "uri": self.classify_incident_type(crisis_type)
-        }
+        if evacuation != "":
+            # it is a evacuation status don't mind other incident types
+            data_dict["incident_type"] = {
+                "uri": "http://beaware-project.eu/beAWARE/#Evacuation"
+            }
+        else:
+            # Select incident type by URI
+            data_dict["incident_type"] = {
+                "uri": self.classify_incident_type(crisis_type)
+            }
 
         # Add dataset
         data_dict["dataset_" + incident_id] = {
@@ -891,7 +914,6 @@ class Message2KB:
         self.insert_into_webgenesis(json.dumps(query_dict, indent=3))
 
         print(">> Drone footage analysis populated to KB")
-
 
     @TimeLogger.timer_decorator(tags=["top006"])
     def top006_incident_report_crcl(self):
@@ -996,7 +1018,6 @@ class Message2KB:
         self.insert_into_webgenesis(json.dumps(query_dict, indent=3))
 
         print(">> Incident report from CRCL populated to KB")
-
 
     @TimeLogger.timer_decorator(tags=["top007"])
     def top007_update_incident_risk(self):
@@ -1103,6 +1124,8 @@ class Message2KB:
     def find_first_common_element(self, list_1, list_2):
         for item in list_1:
             if item in list_2:
+                if item == "Heavy Precipitation":
+                    return "HeavyPrecipitation"
                 return item
 
         return None
