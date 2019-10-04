@@ -839,7 +839,7 @@ class Message2KB:
         }
         add_preferredURI(data_dict["dataset_incident_" + incident_id])
 
-        if evacuation != "":
+        if evacuation == 'end' or evacuation == "inProgress":
             # it is a evacuation status don't mind other incident types
             data_dict["incident_type"] = {
                 "uri": "http://beaware-project.eu/beAWARE/#Evacuation"

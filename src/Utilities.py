@@ -12,6 +12,7 @@ def add_preferredURI(individual_dict):
 
 
 def get_evac_status(message):
+    evacuation = None
     try:
         # print(self.message["body"]["analysisTasks"])
         if "Evacuation" in message["body"]["analysisTasks"]:
@@ -23,4 +24,4 @@ def get_evac_status(message):
         return evacuation
     except Exception as e:
         # print("No evacuation field in TOP 019")
-        return None
+        return evacuation
