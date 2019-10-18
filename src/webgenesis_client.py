@@ -159,7 +159,6 @@ class WebGenesisClient:
                 print(e)
                 return False
             finally:
-                print('now logging query')
                 reply_time = time.time()
                 QueryLogger.log_entry(label="remove_abox_data", time_query=query_time, query_json=query,
                                       time_reply=reply_time, reply_json=reply_dict)
@@ -415,10 +414,15 @@ class WebGenesisClient:
             return None
 
     def get_incident_priority(self, incident_uri):
-        return self.get_object("<" + incident_uri + ">", "baw:hasIncidentPriority")
+        priority = self.get_object("<" + incident_uri + ">", "baw:hasIncidentPriority")
+        # print("Priority: "+str(priority))
+        return priority
+        # return self.get_object("<" + incident_uri + ">", "baw:hasIncidentPriority")
 
     def get_incident_severity(self, incident_uri):
-        return self.get_object("<" + incident_uri + ">", "baw:hasIncidentSeverity")
+        sev = self.get_object("<" + incident_uri + ">", "baw:hasIncidentSeverity")
+        return sev
+        # return self.get_object("<" + incident_uri + ">", "baw:hasIncidentSeverity")
 
     def get_incident_report_severity(self, incident_report_id):
         query = """
@@ -821,7 +825,6 @@ class WebGenesisClient:
             return []
 
     def get_type_of_incident(self, incident_uri):
-
         query = """
                 SELECT ?type_label 
                 WHERE {
@@ -1382,7 +1385,7 @@ class WebGenesisClient:
         if incident_types:
             most_common_type = max(set(incident_types), key=incident_types.count)
 
-            if most_common_type == 'Flood' or most_common_type == 'Overflow':
+            if most_common_type == 'Flood' or most_common_type == 'Overflow' or most_common_type == 'Precipitation':
                 return 'Met'
             elif most_common_type == 'Fire' or most_common_type == 'Smoke':
                 return 'Fire'
@@ -1453,6 +1456,154 @@ if __name__ == "__main__":
 
     # Create webgenesis client
     c = WebGenesisClient(webgenesis_configuration)
+    print(webgenesis_configuration)
+
+    query1 = """
+    SELECT ?psap_id ?report ?p ?o
+    WHERE{
+    ?report baw:hasPSAPIncidentID ?psap_id.
+    #?report rdf:type ?type.
+    ?report ?p ?o.
+    }
+    """
+    query2 = """
+    SELECT ?s ?p ?d
+    WHERE{
+    ?s baw:hasIncidentSeverity ?o. 
+    ?s ?p ?d
+    }
+    """
+
+    query3 = """SELECT ?incident_report ?p ?o
+    WHERE
+    {
+    ?incident_report ?x 'INC_SCAPP_6'.
+    ?incident_report ?p ?o. 
+    }
+    """
+
+    query4 = """
+    SELECT ?subject ?predicate ?incident_report
+    WHERE{
+        ?incident_report ?some_id 'INC_SCAPP_6' . 
+        # ?incident_report ?predicate ?object.
+        ?subject ?predicate ?incident_report. 
+    }
+    """
+
+    query = """
+                SELECT ?incident_report ?psap_id
+                WHERE {
+                    ?incident_report baw:hasPSAPIncidentID ?psap_id .
+                }
+            """
+
+    query_019 = """
+                    SELECT ?incident_report ?prop ?obj
+                    WHERE {
+                        ?incident_report baw:hasPSAPIncidentID 'INC_UAVP_@sinst-id-12ef3240-ccba-11e9-a234-615883b44fb6'.
+                        ?incident_report ?prop ?obj .
+                    }
+                """
+
+    full_query = """
+    SELECT ?severity
+                WHERE {
+                    ?incident_report baw:hasReportID 'INC_UAVP_@sinst-id-12ef3240-ccba-11e9-a234-615883b44fb6' .
+
+                    {
+                        ?incident_report baw:hasAttachment ?attachment .
+                    }
+                    UNION
+                    {
+                        ?attachment baw:isAttachmentOf ?incident_report .
+                    }
+                    UNION
+                    {
+                        ?incident_report baw:hasDescription ?attachment .
+                    }
+                    UNION
+                    {
+                        ?attachment baw:isDescriptionOf ?incident_report .
+                    }
+
+                    { 
+                        ?task baw:taskProducesDataset ?dataset .
+                    }
+                    UNION
+                    {
+                        ?dataset baw:isProducedByTask ?task .
+                    }
+                    
+                    {
+                        ?task baw:relatesToMediaItem ?attachment .
+                    }
+                    UNION
+                    {
+                        ?attachment baw:relatesToTask ?task .
+                    }
+
+                    {
+                        ?dataset baw:detectsDatasetIncident ?incident .
+                    }
+                    UNION
+                    {
+                        ?detection baw:isDetectionOf ?dataset .
+                        ?detection baw:detectsIncident ?incident .
+                    }
+                    UNION
+                    {
+                        ?dataset baw:containsDetection ?detection .
+                        ?detection baw:detectsIncident ?incident .
+                    } .
+
+                    OPTIONAL {
+                        ?incident baw:hasIncidentSeverity ?severity_value .
+                    } .
+
+                    BIND(IF(BOUND(?severity_value), ?severity_value, "unknown") AS ?severity) .
+
+                }
+                """
+    query_location = """
+                    SELECT ?lat ?long
+                    WHERE {
+                        ?incident_report baw:hasReportID '14758b7c-e401-407c-8a9d-4504e00d2a89' .
+                        ?location baw:latitude ?lat .
+                        ?location baw:longitude ?long .
+
+                        {
+                            ?location baw:isLocationOfReport ?incident_report .
+                        }
+                        UNION
+                        {
+                            ?incident_report baw:hasReportLocation ?location .
+                        }
+                        UNION
+                        {
+                            {
+                                ?incident_report baw:hasAttachment ?attachment .
+                            }
+                            UNION
+                            {
+                                ?attachment baw:isAttachmentOf ?incident_report .
+                            }
+
+                            { 
+                                ?task baw:taskProducesDataset ?dataset .
+                            }
+                            UNION
+                            {
+                                ?dataset baw:isProducedByTask ?task .
+                            }
+
+                            {
+                                ?task baw:relatesToMediaItem ?attachment .
+                            }
+                            UNION
+                            {
+                                ?attachment baw:relatesToTask ?task .
+                            }
 
                             {
                                 ?dataset baw:detectsDatasetIncident ?incident .
@@ -1488,8 +1639,30 @@ if __name__ == "__main__":
                         }
                 """
 
-    print(json.dumps(c.execute_sparql_select(query=query_location), indent=2))
-    QueryLogger.flush_entries()
+    query_rule1 = """
+                    SELECT DISTINCT ?incident
+                    WHERE {
+                        ?incident rdf:type baw:Incident .
+                        MINUS {?incident baw:isOfIncidentType baw:OtherIncident .}
+
+                        ?participant baw:participantIsInvolvedIn ?incident .
+                        ?participant rdf:type baw:Human .
+
+                        MINUS {
+                            ?incident baw:hasIncidentSeverity "severe" .
+                        }
+                    }
+                    """
+    query_incident_location = """
+    SELECT ?incident ?inc_location
+                    WHERE {
+                        ?incident rdf:type baw:Incident.
+                        OPTIONAL {?incident baw:hasIncidentLocation ?inc_location}
+                    }
+    """
+
+    print(json.dumps(c.execute_sparql_select(query=query_incident_location), indent=2))
+    # QueryLogger.flush_entries()
     exit()
 
     entry = {"label": "add_abox_data", "time_start": 1568014840.943328, "query": {"data": {

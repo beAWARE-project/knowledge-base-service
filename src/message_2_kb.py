@@ -3,7 +3,7 @@ from webgenesis_client import WebGenesisClient
 import requests
 import time
 from loggers.time_logger import TimeLogger
-from Utilities import add_preferredURI, get_evac_status
+from Utilities import add_preferredURI, get_evac_status, add_incident_location
 
 
 class Message2KB:
@@ -224,6 +224,8 @@ class Message2KB:
             }
             add_preferredURI(data_dict["dataset_incident_" + incident_id])
 
+            add_incident_location(data_dict, incident_id, "dataset_incident_" + incident_id, self.message)
+
             # Select incident type by URI
             data_dict["incident_type"] = {
                 "uri": self.classify_incident_type(results_json["image"]["crisis_type"])
@@ -339,6 +341,8 @@ class Message2KB:
                 }
             }
             add_preferredURI(data_dict["dataset_incident_" + incident_id])
+
+            add_incident_location(data_dict, incident_id, "dataset_incident_" + incident_id, self.message)
 
             # Select incident type by URI
             data_dict["incident_type"] = {
@@ -477,6 +481,11 @@ class Message2KB:
                     }
                 }
                 add_preferredURI(data_dict["incident_" + target_id])
+
+                # print("DATADICT BEFORE:" + str(data_dict))
+                add_incident_location(data_dict, target_id, "incident_" + target_id,  self.message)
+
+                # print("DATADICT:"+str(data_dict))
 
                 # TODO: Add incident location, when the MTA starts discovering locations
 
@@ -839,6 +848,8 @@ class Message2KB:
         }
         add_preferredURI(data_dict["dataset_incident_" + incident_id])
 
+        add_incident_location(data_dict, incident_id, "dataset_incident_" + incident_id, self.message)
+
         if evacuation == 'end' or evacuation == "inProgress":
             # it is a evacuation status don't mind other incident types
             data_dict["incident_type"] = {
@@ -1004,6 +1015,8 @@ class Message2KB:
         }
         add_preferredURI(data_dict["dataset_incident_" + incident_id])
 
+        add_incident_location(data_dict, incident_id, "dataset_incident_" + incident_id, self.message)
+
         # Select incident type by URI
         data_dict["incident_type"] = {
             "uri": self.classify_incident_type(incident_type)
@@ -1124,8 +1137,6 @@ class Message2KB:
     def find_first_common_element(self, list_1, list_2):
         for item in list_1:
             if item in list_2:
-                if item == "Heavy Precipitation":
-                    return "HeavyPrecipitation"
                 return item
 
         return None

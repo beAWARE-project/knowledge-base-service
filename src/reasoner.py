@@ -757,10 +757,23 @@ class Reasoner:
             outgoing_message['body']['position']['latitude'] = psap_indicent_location["lat"]
             outgoing_message['body']['position']['longitude'] = psap_indicent_location["long"]
 
-        # Produce outgoing message
-        self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
+        # try:  # test
+        #     del outgoing_message['body']['description']
+        #     print("outgoing with no description"+ outgoing_message)
+        # except:
+        #     pass
 
-        print(">> TOP101 Incident report with spam flag was sent to PSAP")
+
+        if spam_flag:  # the message is spam
+            description = "INCIDENT WAS FOUND TO BE FAKE!"
+            if 'description' in outgoing_message['body']:
+                description += " "+outgoing_message['body']['description']
+            outgoing_message['body']['description'] = description
+
+            # Produce outgoing message
+            self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
+
+            print(">> TOP101 Incident report with spam flag was sent to PSAP")
 
     def request_report_from_generator(self, incident_id, psap_id, language, priority="undefined", severity="undefined",
                                       evacuation=None, position=None):
