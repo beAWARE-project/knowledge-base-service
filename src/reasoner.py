@@ -17,7 +17,7 @@ class Reasoner:
 
         self.__default_cluster_radius = 500
 
-        self.__default_drone_cluster_radius = 100
+        self.__default_drone_cluster_radius = 0
 
         self.webgenesis_client = WebGenesisClient(self.conf)
 
@@ -971,7 +971,8 @@ class Reasoner:
                     min_distance_from_existing_incident = distance
 
         # If a previous psap incident was found closer than 50m
-        if min_distance_from_existing_incident <= cluster_radius:
+        if min_distance_from_existing_incident < cluster_radius:
+            print("psap incident id:"+str(psap_incident_id))
             return psap_incident_id
 
         # Else, the incident should not be grouped with any previous psap incident and create a new group
@@ -1194,6 +1195,7 @@ class Reasoner:
         An incident of type Flood, Fire, etc (not type Other) that involves Human vulnerable objects
         should be of High severity.
         """
+        # TODO: determine if we need severe/extreme/something else
 
         query = """
                 SELECT DISTINCT ?incident

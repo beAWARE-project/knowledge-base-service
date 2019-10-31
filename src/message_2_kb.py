@@ -238,6 +238,7 @@ class Message2KB:
             target_counter = 0
             detections_list = []
             for target in results_json["image"]["target"]:
+                # print("018: target: {}".format(target))
                 target_id = incident_id + "_" + str(target_counter)
 
                 # Add vulnerable object
@@ -307,6 +308,7 @@ class Message2KB:
             "defaultprefix": "http://beaware-project.eu/beAWARE/#"
         }
 
+        # print("query_dict in WG: " + str(json.dumps(query_dict, indent=3)))
         self.insert_into_webgenesis(json.dumps(query_dict, indent=3))
 
         print(">> Image analysis populated to KB")
@@ -483,7 +485,7 @@ class Message2KB:
                 add_preferredURI(data_dict["incident_" + target_id])
 
                 # print("DATADICT BEFORE:" + str(data_dict))
-                add_incident_location(data_dict, target_id, "incident_" + target_id,  self.message)
+                add_incident_location(data_dict, target_id, "incident_" + target_id, self.message)
 
                 # print("DATADICT:"+str(data_dict))
 
@@ -783,7 +785,13 @@ class Message2KB:
 
         if not incident_detected and evacuation != 'end':
             return
-        if evacuation=='end':
+        if evacuation is not None:
+            incident_id += "_evacuation"
+            self.message["body"]["incidentID"] += "_evacuation"
+
+        if evacuation == 'end':
+            # TODO: do this when necessary
+            # self.populate_evac_end()
             print("populating EVAC=END instance")
 
         # Get analysis results from json file
@@ -1045,9 +1053,13 @@ class Message2KB:
             return
 
         # Insert incident report severity to WebGenesis
-        self.webgenesis_client.set_incident_report_severity_calculated_by_crcl(
+        # self.webgenesis_client.set_incident_report_severity_calculated_by_crcl(
+        #     report_id=incident_id,
+        #     severity_value=severity
+        # )
+        self.webgenesis_client.update_incident_report_severity_calculated_by_crcl(
             report_id=incident_id,
-            severity_value=severity
+            new_severity_value=severity
         )
 
     @TimeLogger.timer_decorator(tags=["top801"])
@@ -1102,7 +1114,7 @@ class Message2KB:
         }
 
         try:
-            print("vulnerable objects: "+str(objects_dictionary[obj]))
+            print("vulnerable objects: " + str(objects_dictionary[obj]))
             return objects_dictionary[obj]
         except Exception as e:
             print(e)
@@ -1125,7 +1137,7 @@ class Message2KB:
         }
 
         try:
-            print("incident types: " +str(incidents_dictionary[incident_type]))
+            print("incident type: " + str(incidents_dictionary[incident_type]))
             return "http://beaware-project.eu/beAWARE/#" + incidents_dictionary[incident_type]
         except Exception as e:
             print(e)

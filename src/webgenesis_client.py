@@ -25,6 +25,7 @@ class WebGenesisClient:
         self.database = 'messages.sqlite'
 
         self.session = None
+        self._severity_values = ["minor", "moderate", "severe", "extreme"]
 
         # Define prefixes for SPARQL
         self.prefixes = """
@@ -611,7 +612,11 @@ class WebGenesisClient:
             return "unknown"
 
         # Also append to the severities list any value calculated by the CRCL
-        severities.append(self.get_incident_cluster_severity_calculated_by_crcl(psap_id))
+        severity_crcl = self.get_incident_cluster_severity_calculated_by_crcl(psap_id)
+        severities.append(severity_crcl)
+        print("Severity by CRCL:"+str(severity_crcl)+" for id: "+str(psap_id))
+        if severity_crcl != "unknown":
+            return severity_crcl
 
         if ("extreme" in severities) or ("Extreme" in severities):
             return "extreme"
@@ -722,6 +727,68 @@ class WebGenesisClient:
         }
 
         self.add_abox_data(json.dumps(insert_query))
+
+    def update_incident_report_severity_calculated_by_crcl(self, report_id, new_severity_value):
+        new_severity_value = new_severity_value.lower()
+        if new_severity_value not in self._severity_values:
+            print("Not a valid severity value from to crcl to update: "+str(new_severity_value))
+            return
+
+        try:
+            incident_report_uri = self.get_incident_report_uri(report_id)
+
+        except Exception as e:
+            print("Error 1 @ WebGenesisClient.set_incident_report_severity_calculated_by_crcl")
+            print(e)
+            return
+
+        old_severity_value = self.get_incident_report_severity_calculated_by_crcl(report_id)
+
+        if new_severity_value != old_severity_value:
+            try:
+                self.remove_severity_calculated_by_crcl(incident_report_uri, values=[old_severity_value])
+            except:
+                print("PROBLEM WITH REMOVING THE OLD CRCL SEVERITY")
+                print(incident_report_uri)
+                print("old severity:"+str(old_severity_value) + " new severity:" + str(new_severity_value))
+                pass
+
+            # Insert severity value
+            insert_query = {
+                "defaultprefix": "http://beaware-project.eu/beAWARE/#",
+                "data": {
+                    "incident_report": {
+                        "uri": incident_report_uri,
+                        "properties": {
+                            "hasSeverityFromCRCL": new_severity_value
+                        }
+                    }
+                }
+            }
+
+            self.add_abox_data(json.dumps(insert_query))
+
+        print("CRCL UPDATE WAS MADE "+ str(old_severity_value) + " --> " + str(new_severity_value))
+
+    def remove_severity_calculated_by_crcl(self, incident_report_uri, values=None):
+        values_to_remove = self._severity_values.copy()
+        if values is not None:
+            values_to_remove = values
+
+        for value in values_to_remove:
+            # delete severity value
+            delete_query = {
+                "defaultprefix": "http://beaware-project.eu/beAWARE/#",
+                "data": {
+                    "individuals": [],
+                    "properties": {
+                        incident_report_uri: {
+                            "hasSeverityFromCRCL": value
+                        }
+                    }
+                }
+            }
+            self.remove_abox_data(json.dumps(delete_query))
 
     def get_involved_participants_of_incident(self, incident_uri):
 
@@ -1374,9 +1441,9 @@ class WebGenesisClient:
 
             for incident in incidents_of_cluster:
                 incident_types.append(self.get_type_of_incident(incident_uri=incident["incident_uri"]))
-            print("incidents types:" + str(incident_types))
+            # print("incidents types:" + str(incident_types))
             incident_types = list(filter(lambda x: x != "Evacuation" and x != "Other", incident_types))
-            print("incidents types without evac/other:" + str(incident_types))
+            # print("incidents types without evac/other:" + str(incident_types))
         except Exception as e:
             print("Error @ WebGenesisClient.get_incident_category()")
             print(e)
@@ -1395,6 +1462,28 @@ class WebGenesisClient:
                 return 'Infra'
             else:
                 return 'Other'
+        else:
+            return 'Other'
+
+    def get_incident_raw_category(self, psap_id):
+        incident_types = []
+
+        try:
+            incidents_of_cluster = self.get_incidents_details_from_psap_incident_cluster(psap_id)
+
+            for incident in incidents_of_cluster:
+                incident_types.append(self.get_type_of_incident(incident_uri=incident["incident_uri"]))
+            # print("Raw incidents types:" + str(incident_types))
+            # incident_types = list(filter(lambda x: x != "Evacuation" and x != "Other", incident_types))
+        except Exception as e:
+            print("Error @ WebGenesisClient.get_incident_category()")
+            print(e)
+            return 'Other'
+
+        if incident_types:
+            most_common_type = max(set(incident_types), key=incident_types.count)
+
+            return most_common_type
         else:
             return 'Other'
 
