@@ -1,1 +1,5 @@
-{"hostname": "https://beaware-1.eu-de.containers.appdomain.cloud", "ontology_entry_id": "1932"}
+{"hostname": "https://beaware-1.eu-de.containers.appdomain.cloud",
+  "hostname2": "http://0.0.0.0:8080",
+  "hostname3": "http://160.40.55.234:8080",
+  "hostname4": "http://160.40.49.112:8080",
+  "ontology_entry_id": "1932"}

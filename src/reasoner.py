@@ -17,7 +17,7 @@ class Reasoner:
 
         self.__default_cluster_radius = 500
 
-        self.__default_drone_cluster_radius = 0
+        self.__default_drone_cluster_radius = self.__default_cluster_radius
 
         self.webgenesis_client = WebGenesisClient(self.conf)
 
@@ -469,6 +469,7 @@ class Reasoner:
             long = self.incoming_message['body']['location']['longitude']
             analyzed_file_url = self.incoming_message['body']['media_analyzed']
             media_timestamp = self.incoming_message["body"]["media_timestamp"]
+            language = self.incoming_message["body"]["language"]
         except Exception as e:
             print("Error 1 @ Reasoner.top019_uav_media_analyzed")
             print("Error in message:\n", e)
@@ -501,7 +502,7 @@ class Reasoner:
                 "latitude": lat,
                 "longitude": long
             },
-            "language": "en-US",
+            "language": language,
             "startTimeUTC": media_timestamp,
             "title": "UAV footage report from " + media_timestamp,
             "attachments": [
@@ -557,7 +558,7 @@ class Reasoner:
         self.request_report_from_generator(
             incident_id=incident_id,
             psap_id=outgoing_message['body']['incidentID'],
-            language=outgoing_message['body']['language'],
+            language=language,
             priority=outgoing_message['body']['priority'],
             severity=outgoing_message['body']['severity'],
             evacuation=evacuation
@@ -954,9 +955,16 @@ class Reasoner:
         psap_incident_id = None
         min_distance_from_existing_incident = 100000000
 
+        if "_evacuation" in report_id:
+            print("is evacuation:"+str(report_id))
+            return report_id
+
         # Get all existing reports that have a psap incident id, with their locations (lat, long)
         existing_incidents = self.webgenesis_client.get_psap_incident_locations()
-
+        print("existing Incidents psap ids:"+str([i["psap_id"] for i in existing_incidents]))
+        # exclude clusters that are from evacuation, do not put new incidents in evacuation cluster
+        existing_incidents = [inc for inc in existing_incidents if "_evacuation" not in inc['psap_id']]
+        print("existing Incidents without evacuation: " + str([i["psap_id"] for i in existing_incidents]))
         # For each existing incident
         for existing_incident in existing_incidents:
 
@@ -971,7 +979,7 @@ class Reasoner:
                     min_distance_from_existing_incident = distance
 
         # If a previous psap incident was found closer than 50m
-        if min_distance_from_existing_incident < cluster_radius:
+        if min_distance_from_existing_incident <= cluster_radius:
             print("psap incident id:"+str(psap_incident_id))
             return psap_incident_id
 
