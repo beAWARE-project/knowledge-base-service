@@ -9,6 +9,82 @@ from loggers.time_logger import TimeLogger
 from Utilities import get_evac_status
 
 
+class PersistantFields:
+    __descriptions = dict()
+    __titles = dict()
+
+    @staticmethod
+    def get_description(psap_id):
+        if psap_id in PersistantFields.__descriptions:
+            return PersistantFields.__descriptions[psap_id]
+        return None
+
+    @staticmethod
+    def get_title(psap_id):
+        if psap_id in PersistantFields.__titles:
+            return PersistantFields.__titles[psap_id]
+        return None
+
+    @staticmethod
+    def set_description(psap_id, description):
+        PersistantFields.__descriptions[psap_id] = description
+
+    @staticmethod
+    def set_title(psap_id, title):
+        PersistantFields.__titles[psap_id] = title
+
+    @staticmethod
+    def apply_persistant(dictionary):
+        try:
+            psap_id = dictionary['body']['incidentID']
+            if "title" in dictionary["body"]:
+                if dictionary["body"]['title'] != "":
+                    PersistantFields.set_title(psap_id, title=dictionary["body"]['title'])
+                    print("setting new title:" + str(dictionary["body"]['title']))
+            elif PersistantFields.get_title(psap_id) is not None:
+                dictionary["body"]['title'] = PersistantFields.get_title(psap_id)
+                print("Using existing title:"+str(PersistantFields.get_title(psap_id)))
+
+            if "description" in dictionary["body"]:
+                if dictionary["body"]['description'] != "":
+                    PersistantFields.set_description(psap_id, description=dictionary["body"]['description'])
+                    print("setting new description:" + str(dictionary["body"]['description']))
+            elif PersistantFields.get_description(psap_id) is not None:
+                dictionary["body"]['description'] = PersistantFields.get_description(psap_id)
+                print("Using existing description:"+str(PersistantFields.get_description(psap_id)))
+        except:
+            pass
+
+    @staticmethod
+    def _generate_title_description(psap_id, title, description):
+        """
+        If title is None, return the locally saved title (or None if there isn't one)
+        If description is None, return the locally saved description(or None if there isn't one)
+
+        If title has value, save it locally, and return it.
+        If description has value, save it locally, and return it.
+
+
+        :param psap_id:
+        :param title:
+        :param description:
+        :return:
+        """
+        if description is None:
+            description = PersistantFields.get_description(psap_id)
+        else:
+            PersistantFields.set_description(psap_id, description)
+        if title is None:
+            title = PersistantFields.get_title(psap_id)
+        else:
+            PersistantFields.set_title(psap_id, title)
+
+        return title, description
+
+
+persistant_fields = PersistantFields()
+
+
 class Reasoner:
     @TimeLogger.timer_decorator(tags=["reasoner"])
     def __init__(self, webgenesis_conf, message_json=None):
@@ -30,6 +106,7 @@ class Reasoner:
             except:
                 pass
 
+    @TimeLogger.timer_decorator(tags=["reasoner_021"])
     def top021_incident_report(self):
         """
         if alert -> sends 101
@@ -60,7 +137,8 @@ class Reasoner:
 
         # If an update, get the existing PSAP incident ID
         else:
-            outgoing_message['body']['incidentID'] = self.webgenesis_client.get_incident_report_psap_id(incident_id)
+            psap_incident_id = self.webgenesis_client.get_incident_report_psap_id(incident_id)
+            outgoing_message['body']['incidentID'] = psap_incident_id
 
             # TODO: TEMP - If attachement type is empty, do nothing
             try:
@@ -90,6 +168,7 @@ class Reasoner:
 
         if Reasoner._proceed_with_TOP101(outgoing_message):
             # Produce outgoing message
+            persistant_fields.apply_persistant(outgoing_message)
             self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
             print(">> TOP101 Incident report sent to PSAP")
         else:
@@ -107,6 +186,7 @@ class Reasoner:
         except:
             return True
 
+    @TimeLogger.timer_decorator(tags=["reasoner_018"])
     def top018_image_analyzed(self):
         try:
             incident_id = self.incoming_message['body']['incidentID']
@@ -179,13 +259,14 @@ class Reasoner:
         # Update incident originator
         outgoing_message['body']['incidentOriginator'] = "KB"
 
+        persistant_fields.apply_persistant(dictionary=outgoing_message)
+
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
 
         # Update incident report text in KB
         self.webgenesis_client.update_incident_report_text_in_sqlite(incident_id,
                                                                      json.dumps(outgoing_message, indent=3))
-
         print(">> TOP101 Incident report with severity/priority sent to PSAP")
 
         # Check if a place of relief capacity is affected by this analysis
@@ -204,6 +285,7 @@ class Reasoner:
 
         print(">> Report generation was requested from MRG")
 
+    @TimeLogger.timer_decorator(tags=["reasoner_017"])
     def top017_video_analyzed(self):
         try:
             incident_id = self.incoming_message['body']['incidentID']
@@ -276,6 +358,8 @@ class Reasoner:
         # Update incident originator
         outgoing_message['body']['incidentOriginator'] = "KB"
 
+        persistant_fields.apply_persistant(dictionary=outgoing_message)
+
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
 
@@ -301,6 +385,7 @@ class Reasoner:
 
         print(">> Report generation was requested from MRG")
 
+    @TimeLogger.timer_decorator(tags=["reasoner_028"])
     def top028_text_analysed(self):
         try:
             incident_id = self.incoming_message['body']['incidentID']
@@ -324,17 +409,19 @@ class Reasoner:
 
         # If the incident report does not have a location (i.e. it is a tweet with undefined coordinates and no incident locations)
         if report_location['lat'] == "undefined" and report_location['long'] == "undefined":
+            print("No incident location, in TOP028")
             return
 
-        # Request is asked using the PSAP id, since it will contain all cluster's data
-        self.request_report_from_generator(
-            incident_id=incident_id,
-            psap_id=self.webgenesis_client.get_incident_report_psap_id(incident_id),
-            language=language
-        )
+        if self.incoming_message['body']['incidentOriginator'] != "SMA":
+            # Request is asked using the PSAP id, since it will contain all cluster's data
+            self.request_report_from_generator(
+                incident_id=incident_id,
+                psap_id=self.webgenesis_client.get_incident_report_psap_id(incident_id),
+                language=language
+            )
+            print(">> Report generation was requested from MRG")
 
-        print(">> Report generation was requested from MRG")
-
+    @TimeLogger.timer_decorator(tags=["reasoner_040"])
     def top040_text_report_generated(self):
         try:
             incident_id = self.incoming_message['body']['incidentID']
@@ -357,12 +444,14 @@ class Reasoner:
         # Change topic name in header
         outgoing_message['header']['topicName'] = "TOP101_INCIDENT_REPORT"
 
+        # Find psap id
+        psap_id = self.webgenesis_client.get_incident_report_psap_id(incident_id)
+
+        # title, description = persistant_fields.generate_title_description(psap_id, title=title, description=description)
+
         # Change title and description
         outgoing_message['body']['title'] = title
         outgoing_message['body']['description'] = description
-
-        # Find psap id
-        psap_id = self.webgenesis_client.get_incident_report_psap_id(incident_id)
 
         # Change incident id to PSAP incident id
         outgoing_message['body']['incidentID'] = psap_id
@@ -385,6 +474,8 @@ class Reasoner:
             outgoing_message['body']['position']['latitude'] = psap_indicent_location["lat"]
             outgoing_message['body']['position']['longitude'] = psap_indicent_location["long"]
 
+        persistant_fields.apply_persistant(dictionary=outgoing_message)
+
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
 
@@ -394,6 +485,7 @@ class Reasoner:
         self.webgenesis_client.update_incident_report_text_in_sqlite(incident_id,
                                                                      json.dumps(outgoing_message, indent=3))
 
+    @TimeLogger.timer_decorator(tags=["reasoner_001"])
     def top001_social_media_text(self):
 
         # Handle PSAP incident ID
@@ -415,9 +507,11 @@ class Reasoner:
         # Insert the PSAP incident ID to the KB
         self.webgenesis_client.set_incident_report_psap_id(incident_id, psap_incident_id)
 
+    @TimeLogger.timer_decorator(tags=["reasoner_003"])
     def top003_social_media_report(self):
         # Copy incoming message
         outgoing_message = self.incoming_message
+        default_language = "en-US"
 
         # Change topic name in header
         outgoing_message['header']['topicName'] = "TOP101_INCIDENT_REPORT"
@@ -428,6 +522,14 @@ class Reasoner:
         # Calculate the PSAP incident ID
         lat = outgoing_message['body']['position']['latitude']
         long = outgoing_message['body']['position']['longitude']
+
+        if "language" in self.incoming_message["body"]:
+            language = self.incoming_message["body"]["language"]
+        else:
+            language = default_language
+
+        self.webgenesis_client.update_incident_report_text_in_sqlite(incident_id,
+                                                                     json.dumps(self.incoming_message, indent=2))
 
         # Check if this incident is nearby previous incidents
         psap_incident_id = self.calculate_psap_incident_id(incident_id, lat, long)
@@ -456,12 +558,25 @@ class Reasoner:
         # Update incident originator
         outgoing_message['body']['incidentOriginator'] = "KB"
 
+        persistant_fields.apply_persistant(dictionary=outgoing_message)
+
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
 
         print(">> TOP101 Incident report sent to PSAP")
 
+        # Request is asked using the PSAP id, since it will contain all cluster's data
+        self.request_report_from_generator(
+            incident_id=incident_id,
+            psap_id=self.webgenesis_client.get_incident_report_psap_id(incident_id),
+            language=language,
+            trigger="SMA"
+        )
+        print(">> Report generation was requested from MRG")
+
+    @TimeLogger.timer_decorator(tags=["reasoner_019"])
     def top019_uav_media_analyzed(self):
+        default_language = "en-US"
         try:
             incident_id = self.incoming_message["body"]["incidentID"]
             incident_detected = self.incoming_message["body"]["incident_detected"]
@@ -469,7 +584,10 @@ class Reasoner:
             long = self.incoming_message['body']['location']['longitude']
             analyzed_file_url = self.incoming_message['body']['media_analyzed']
             media_timestamp = self.incoming_message["body"]["media_timestamp"]
-            language = self.incoming_message["body"]["language"]
+            if "language" in self.incoming_message["body"]:
+                language = self.incoming_message["body"]["language"]
+            else:
+                language = default_language
         except Exception as e:
             print("Error 1 @ Reasoner.top019_uav_media_analyzed")
             print("Error in message:\n", e)
@@ -544,6 +662,8 @@ class Reasoner:
         outgoing_message['body']['incidentCategory'] = self.webgenesis_client.get_incident_category(
             outgoing_message['body']['incidentID'])
 
+        persistant_fields.apply_persistant(dictionary=outgoing_message)
+
         # Produce outgoing message TOP101
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
 
@@ -566,6 +686,7 @@ class Reasoner:
 
         print(">> Report generation was requested from MRG")
 
+    @TimeLogger.timer_decorator(tags=["reasoner_111"])
     def top111_system_initialization(self):
         print(">> TOP111 system initialization received")
 
@@ -597,9 +718,10 @@ class Reasoner:
 
             # Produce outgoing message
             self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
-
+            persistant_fields.apply_persistant(dictionary=outgoing_message)
             print(">> TOP101 Incident report for place of relief " + place["display_name"] + " was sent to PSAP")
 
+    @TimeLogger.timer_decorator(tags=["reasoner_112"])
     def top112_summary_trigger(self):
         print(">> TOP112 summary trigger received")
 
@@ -613,6 +735,7 @@ class Reasoner:
 
         self.request_wrap_up_summary_from_generator(language=language)
 
+    @TimeLogger.timer_decorator(tags=["reasoner_006"])
     def top006_incident_report_crcl(self):
 
         # Copy incoming message
@@ -660,23 +783,31 @@ class Reasoner:
         # Update incident originator
         outgoing_message['body']['incidentOriginator'] = "KB"
 
+        persistant_fields.apply_persistant(dictionary=outgoing_message)
+
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
 
         print(">> TOP101 Incident report sent to PSAP")
 
+    @TimeLogger.timer_decorator(tags=["reasoner_007"])
     def top007_update_incident_risk(self):
+        description = None
+        title = None
+        language = "en-US"
         try:
             incident_id = self.incoming_message['body']['incidentID']
             psap_id = self.webgenesis_client.get_incident_report_psap_id(incident_id)
             incident_timestamp = self.incoming_message['body']['incidentDateTimeUTC']
-            language = self.incoming_message['body']['language']
-
+            if "language" in self.incoming_message['body']:
+                language = self.incoming_message['body']['language']
             position = self.webgenesis_client.get_location_of_incident_report(psap_id)
             latitude = position["lat"]
             longitude = position["long"]
-            description = self.incoming_message['body']['description']
-            title = self.incoming_message['body']['title']
+            if "description" in self.incoming_message['body']:
+                description = self.incoming_message['body']['description']
+            if "title" in self.incoming_message['body']:
+                title = self.incoming_message['body']['title']
 
         except Exception as e:
             print("Error 1 @ Reasoner.top007_update_incident_risk")
@@ -709,16 +840,17 @@ class Reasoner:
                 "language": language,
                 "incidentID": psap_id,
                 "startTimeUTC": incident_timestamp,
-                "description": description,
-                "title": title
             }
         }
+
+        persistant_fields.apply_persistant(dictionary=outgoing_message)
 
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
 
         print(">> TOP101 Incident report sent to PSAP")
 
+    @TimeLogger.timer_decorator(tags=["reasoner_801"])
     def top801_incident_validation(self):
         try:
             incident_id = self.incoming_message['body']['incidentID']
@@ -764,20 +896,21 @@ class Reasoner:
         # except:
         #     pass
 
-
         if spam_flag:  # the message is spam
             description = "INCIDENT WAS FOUND TO BE FAKE!"
             if 'description' in outgoing_message['body']:
-                description += " "+outgoing_message['body']['description']
+                description += " " + outgoing_message['body']['description']
             outgoing_message['body']['description'] = description
+            persistant_fields.set_description(psap_id, description)
 
             # Produce outgoing message
             self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
 
             print(">> TOP101 Incident report with spam flag was sent to PSAP")
 
+    @TimeLogger.timer_decorator(tags=["request_report_030"])
     def request_report_from_generator(self, incident_id, psap_id, language, priority="undefined", severity="undefined",
-                                      evacuation=None, position=None):
+                                      evacuation=None, position=None, trigger=None):
         outgoing_message = {
             "header": {
                 "status": "Actual",
@@ -814,14 +947,19 @@ class Reasoner:
 
         # Get all incidents that belong to this psap id
         incidents_details_list = self.webgenesis_client.get_incidents_details_from_psap_incident_cluster(psap_id)
-
+        # print("returned incidents : "+str(incidents_details_list))
         if not incidents_details_list:
-            print("No incidents found by SPARQL")
+            print("No incidents found by SPARQL in request report generator ")
             return
 
         outgoing_message['body']['incidents'] = []
         for incident in incidents_details_list:
-            outgoing_message['body']['incidents'].append(self.create_incident_section_for_report_generator(incident))
+            print(
+                "INCIDENT ID: " + str(incident_id) + " REPORT ID : " + str(incident["report_id"]) + " TRIGGER: " + str(
+                    trigger))
+            if incident_id == incident["report_id"] or trigger == "SMA":
+                outgoing_message['body']['incidents'].append(
+                    self.create_incident_section_for_report_generator(incident))
 
         # Produce outgoing message to MRG
         self.produce_message(outgoing_message["header"]["topicName"], outgoing_message)
@@ -859,6 +997,13 @@ class Reasoner:
         for incident in incidents_details_list:
             outgoing_message['body']['incidents'].append(self.create_incident_section_for_report_generator(incident))
 
+        try:
+            import time
+            with open("033_" + str(time.time()) + ".json", 'w') as f:
+                f.write(json.dumps(outgoing_message, indent=2))
+        except:
+            pass
+
         # Produce outgoing message to MRG
         self.produce_message(outgoing_message["header"]["topicName"], outgoing_message)
 
@@ -885,11 +1030,14 @@ class Reasoner:
         section["participants"] = []
         involved_participants = self.webgenesis_client.get_involved_participants_of_incident(incident["incident_uri"])
 
+        # print("INCIDENT::::::::::" + str(incident))
         for participant in involved_participants:
+            # print("involved participant: " + str(participant))
+            # print("section participants:"+str(section["participants"]))
 
             type_exists_in_json = False
             for participant_in_json in section["participants"]:
-                if participant["type"] == participant_in_json["type"]:
+                if participant["type"] == participant_in_json["type"] and participant["type"] != "Vulnerable Object":
                     participant_in_json["detections"].append({
                         "confidence": participant["confidence"],
                         "risk": participant["risk"]
@@ -945,6 +1093,9 @@ class Reasoner:
         return (datetime.utcnow() + timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def calculate_psap_incident_id(self, report_id, lat, long, cluster_radius=None):
+        print("reportID" + str(report_id))
+        print("location" + str(lat) + " " + str(long))
+
         if cluster_radius is None:
             cluster_radius = self.__default_cluster_radius
 
@@ -956,15 +1107,15 @@ class Reasoner:
         min_distance_from_existing_incident = 100000000
 
         if "_evacuation" in report_id:
-            print("is evacuation:"+str(report_id))
+            print("is evacuation:" + str(report_id))
             return report_id
 
         # Get all existing reports that have a psap incident id, with their locations (lat, long)
         existing_incidents = self.webgenesis_client.get_psap_incident_locations()
-        print("existing Incidents psap ids:"+str([i["psap_id"] for i in existing_incidents]))
+        # print("existing Incidents psap ids:" + str([i["psap_id"] for i in existing_incidents]))
         # exclude clusters that are from evacuation, do not put new incidents in evacuation cluster
         existing_incidents = [inc for inc in existing_incidents if "_evacuation" not in inc['psap_id']]
-        print("existing Incidents without evacuation: " + str([i["psap_id"] for i in existing_incidents]))
+        # print("existing Incidents without evacuation: " + str([i["psap_id"] for i in existing_incidents]))
         # For each existing incident
         for existing_incident in existing_incidents:
 
@@ -980,7 +1131,7 @@ class Reasoner:
 
         # If a previous psap incident was found closer than 50m
         if min_distance_from_existing_incident <= cluster_radius:
-            print("psap incident id:"+str(psap_incident_id))
+            print("psap incident id:" + str(psap_incident_id))
             return psap_incident_id
 
         # Else, the incident should not be grouped with any previous psap incident and create a new group
@@ -1219,9 +1370,11 @@ class Reasoner:
                     }
                 }
                 """
-
+        # print("Rule 1")
+        # print(query)
         results = self.webgenesis_client.execute_sparql_select(query)
 
+        # print(results)
         if results is not None:
             for result in results['results']['bindings']:
                 incident_uri = result['incident']['value']
@@ -1241,7 +1394,7 @@ class Reasoner:
                     ?incident rdf:type baw:Incident .
                     ?incident baw:isOfIncidentType ?incident_type .
                     ?incident_type rdfs:label ?incident_type_label .
-                    
+                     
                     { ?incident baw:isOfIncidentType baw:Full }
                     UNION
                     { ?incident baw:isOfIncidentType baw:Empty } .

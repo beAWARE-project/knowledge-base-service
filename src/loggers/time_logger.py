@@ -11,7 +11,7 @@ import time
 
 TIMING_ENABLED = True
 PATH_TIMING_LOG = "./loggers/logs/time_logs.csv"
-BATCH_SIZE = 1
+BATCH_SIZE = 100
 
 
 class TimeLogger:

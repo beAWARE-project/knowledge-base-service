@@ -334,7 +334,7 @@ class WebGenesisClient:
             return result[0]
 
         except Exception as e:
-            print("Error @ WebGenesisClient.get_incident_report_text_from_sqlite()")
+            print("Error @ WebGenesisClient.get_incident_report_text_from_sqlite(), incidentID: "+str(incident_id))
             print(e)
             return None
 
@@ -768,12 +768,13 @@ class WebGenesisClient:
 
             self.add_abox_data(json.dumps(insert_query))
 
-        print("CRCL UPDATE WAS MADE "+ str(old_severity_value) + " --> " + str(new_severity_value))
+        print("CRCL UPDATE WAS MADE " + str(old_severity_value) + " --> " + str(new_severity_value))
 
     def remove_severity_calculated_by_crcl(self, incident_report_uri, values=None):
         values_to_remove = self._severity_values.copy()
         if values is not None:
             values_to_remove = values
+            print("Removing old crcl severity values:"+str(values_to_remove))
 
         for value in values_to_remove:
             # delete severity value
@@ -1442,8 +1443,8 @@ class WebGenesisClient:
             for incident in incidents_of_cluster:
                 incident_types.append(self.get_type_of_incident(incident_uri=incident["incident_uri"]))
             # print("incidents types:" + str(incident_types))
-            incident_types = list(filter(lambda x: x != "Evacuation" and x != "Other", incident_types))
-            # print("incidents types without evac/other:" + str(incident_types))
+            incident_types = list(filter(lambda x: x != "Evacuation" and x != "Other" and x != "OtherIncident", incident_types))
+            print("incidents types without evac/other:" + str(incident_types))
         except Exception as e:
             print("Error @ WebGenesisClient.get_incident_category()")
             print(e)
