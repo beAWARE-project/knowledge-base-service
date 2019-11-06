@@ -842,6 +842,10 @@ class Reasoner:
                 "startTimeUTC": incident_timestamp,
             }
         }
+        if description is not None:
+            outgoing_message['body']['description'] = description
+        if title is not None:
+            outgoing_message['body']['title'] = title
 
         persistant_fields.apply_persistant(dictionary=outgoing_message)
 
