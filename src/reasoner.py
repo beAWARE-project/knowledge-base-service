@@ -112,7 +112,7 @@ class Reasoner:
         self.conf = webgenesis_conf
         self.incoming_message = message_json
 
-        self.__default_cluster_radius = 500
+        self.__default_cluster_radius = 200
 
         self.__default_drone_cluster_radius = self.__default_cluster_radius
 
@@ -960,6 +960,7 @@ class Reasoner:
                 description += persistant_fields.get_description(psap_id)
 
             outgoing_message['body']['description'] = description
+            persistant_fields.set_description(psap_id, description)
 
             if persistant_fields.get_title(psap_id) is not None:
                 outgoing_message['body']['title'] = persistant_fields.get_title(psap_id)
@@ -1420,33 +1421,34 @@ class Reasoner:
         An incident of type Flood, Fire, etc (not type Other) that involves Human vulnerable objects
         should be of High severity.
         """
-        # TODO: determine if we need severe/extreme/something else
+        # TODO: determine if we need severe/extreme/something else (e.g. keep it)
 
-        query = """
-                SELECT DISTINCT ?incident
-                WHERE {
-                    ?incident rdf:type baw:Incident .
-                    MINUS {?incident baw:isOfIncidentType baw:OtherIncident .}
-
-                    ?participant baw:participantIsInvolvedIn ?incident .
-                    ?participant rdf:type baw:Human .
-
-                    MINUS {
-                        ?incident baw:hasIncidentSeverity "severe" .
-                    }
-                }
-                """
-        # print("Rule 1")
-        # print(query)
-        results = self.webgenesis_client.execute_sparql_select(query)
-
-        # print(results)
-        if results is not None:
-            for result in results['results']['bindings']:
-                incident_uri = result['incident']['value']
-
-                # Update incident severity value
-                self.webgenesis_client.update_incident_severity(incident_uri, "severe")
+        return
+        # query = """
+        #         SELECT DISTINCT ?incident
+        #         WHERE {
+        #             ?incident rdf:type baw:Incident .
+        #             MINUS {?incident baw:isOfIncidentType baw:OtherIncident .}
+        #
+        #             ?participant baw:participantIsInvolvedIn ?incident .
+        #             ?participant rdf:type baw:Human .
+        #
+        #             MINUS {
+        #                 ?incident baw:hasIncidentSeverity "severe" .
+        #             }
+        #         }
+        #         """
+        # # print("Rule 1")
+        # # print(query)
+        # results = self.webgenesis_client.execute_sparql_select(query)
+        #
+        # # print(results)
+        # if results is not None:
+        #     for result in results['results']['bindings']:
+        #         incident_uri = result['incident']['value']
+        #
+        #         # Update incident severity value
+        #         self.webgenesis_client.update_incident_severity(incident_uri, "severe")
 
     def reasoning_rule_2(self):
         """
