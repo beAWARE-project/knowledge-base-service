@@ -24,17 +24,18 @@ class WebGenesisClient:
         # The sqlite database where report texts are stored
         self.database = 'messages.sqlite'
 
-        self.session = None
+        # self.session = None
         self._severity_values = ["minor", "moderate", "severe", "extreme"]
 
         # Define prefixes for SPARQL
         self.prefixes = """
-            PREFIX baw: <http://beaware-project.eu/beAWARE/#>
-            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        """
+                            PREFIX baw: <http://beaware-project.eu/beAWARE/#>
+                            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                        """
 
     def login(self):
+        # print("-----------------IN LOGIN!--------------------")
         credentials = {'user': (None, self.username), 'key': (None, self.password)}
 
         # Create session handler
@@ -77,46 +78,47 @@ class WebGenesisClient:
             return False
 
         # Login
-        if self.login() == 200:
+        # if self.login() == 200:
 
-            # Prepare headers
-            headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+        # Prepare headers
+        headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
 
-            query_time = time.time()
-            reply_dict = dict()
-            reply_dict["status_code"] = None
-            reply_dict["text"] = None
-            reply_dict["url"] = None
+        query_time = time.time()
+        reply_dict = dict()
+        reply_dict["status_code"] = None
+        reply_dict["text"] = None
+        reply_dict["url"] = None
 
-            # Send request with query
-            try:
-                r = self.session.post(self.addABoxData_url, headers=headers, data=json.dumps(query))
-
-                if type(r) is dict:
-                    if "status_code" in r and "text" in r and "url" in r:
-                        reply_dict["status_code"] = r.status_code
-                        reply_dict["text"] = r.text
-                        reply_dict["url"] = r.url
-
-                if type(r) is requests.models.Response:
+        # Send request with query
+        try:
+            # print("{} before add_abox ".format(time.time()))
+            r = self.session.post(self.addABoxData_url, headers=headers, data=json.dumps(query))
+            # print("{} after add_abox ".format(time.time()))
+            if type(r) is dict:
+                if "status_code" in r and "text" in r and "url" in r:
                     reply_dict["status_code"] = r.status_code
                     reply_dict["text"] = r.text
                     reply_dict["url"] = r.url
 
-            except Exception as e:
-                print('addABoxData failed at http request')
-                print(e)
-                return False
-            finally:
-                reply_time = time.time()
-                QueryLogger.log_entry(label="add_abox_data", time_query=query_time, query_json=query,
-                                      time_reply=reply_time, reply_json=reply_dict)
+            if type(r) is requests.models.Response:
+                reply_dict["status_code"] = r.status_code
+                reply_dict["text"] = r.text
+                reply_dict["url"] = r.url
 
-            # Logout
-            self.logout()
+        except Exception as e:
+            print('addABoxData failed at http request')
+            print(e)
+            return False
+        finally:
+            reply_time = time.time()
+            QueryLogger.log_entry(label="add_abox_data", time_query=query_time, query_json=query,
+                                  time_reply=reply_time, reply_json=reply_dict)
 
-        else:
-            print("Login failed")
+        # Logout
+        # self.logout()
+        #
+        # else:
+        #     print("Login failed")
 
     def remove_abox_data(self, json_query):
 
@@ -129,98 +131,102 @@ class WebGenesisClient:
             return False
 
         # Login
-        if self.login() == 200:
+        # if self.login() == 200:
+        # print("{} before remove abox ".format(time.time()))
+        # Prepare headers
+        headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+        # print("{} after remove abox ".format(time.time()))
 
-            # Prepare headers
-            headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+        query_time = time.time()
+        reply_dict = dict()
+        reply_dict["status_code"] = None
+        reply_dict["text"] = None
+        reply_dict["url"] = None
 
-            query_time = time.time()
-            reply_dict = dict()
-            reply_dict["status_code"] = None
-            reply_dict["text"] = None
-            reply_dict["url"] = None
+        # Send request with query
+        try:
+            r = self.session.post(self.removeABoxData_url, headers=headers, data=json.dumps(query))
 
-            # Send request with query
-            try:
-                r = self.session.post(self.removeABoxData_url, headers=headers, data=json.dumps(query))
-
-                if type(r) is dict:
-                    if "status_code" in r and "text" in r and "url" in r:
-                        reply_dict["status_code"] = r.status_code
-                        reply_dict["text"] = r.text
-                        reply_dict["url"] = r.url
-
-                if type(r) is requests.models.Response:
+            if type(r) is dict:
+                if "status_code" in r and "text" in r and "url" in r:
                     reply_dict["status_code"] = r.status_code
                     reply_dict["text"] = r.text
                     reply_dict["url"] = r.url
 
-            except Exception as e:
-                print('removeABoxData failed at http request')
-                print(e)
-                return False
-            finally:
-                reply_time = time.time()
-                QueryLogger.log_entry(label="remove_abox_data", time_query=query_time, query_json=query,
-                                      time_reply=reply_time, reply_json=reply_dict)
+            if type(r) is requests.models.Response:
+                reply_dict["status_code"] = r.status_code
+                reply_dict["text"] = r.text
+                reply_dict["url"] = r.url
 
-            # Logout
-            self.logout()
+        except Exception as e:
+            print('removeABoxData failed at http request')
+            print(e)
+            return False
+        finally:
+            reply_time = time.time()
+            QueryLogger.log_entry(label="remove_abox_data", time_query=query_time, query_json=query,
+                                  time_reply=reply_time, reply_json=reply_dict)
 
-        else:
-            print("Login failed")
+        # Logout
+        # self.logout()
+
+        # else:
+        #     print("Login failed")
 
     def execute_sparql_select(self, query):
         # Add prefixes
         query = self.prefixes + query
 
         # Login
-        if self.login() == 200:
+        # if self.login() == 200:
 
-            headers = {'Content-type': 'application/x-www-form-urlencoded'}
+        headers = {'Content-type': 'application/x-www-form-urlencoded'}
 
-            query_time = time.time()
-            reply_dict = dict()
-            reply_dict["status_code"] = None
-            reply_dict["text"] = None
-            reply_dict["url"] = None
+        query_time = time.time()
+        reply_dict = dict()
+        reply_dict["status_code"] = None
+        reply_dict["text"] = None
+        reply_dict["url"] = None
 
-            # Send request with query
-            try:
-                r = self.session.post(self.sparql_url, headers=headers, params={'query': query, 'output': 'json'})
+        # Send request with query
+        try:
+            # print("{} before select ".format(time.time()))
+            r = self.session.post(self.sparql_url, headers=headers, params={'query': query, 'output': 'json'})
+            # print("{} after select ".format(time.time()))
 
-                if type(r) is dict:
-                    if "status_code" in r and "text" in r and "url" in r:
-                        reply_dict["status_code"] = r.status_code
-                        reply_dict["text"] = r.text
-                        reply_dict["url"] = r.url
-
-                if type(r) is requests.models.Response:
+            if type(r) is dict:
+                if "status_code" in r and "text" in r and "url" in r:
                     reply_dict["status_code"] = r.status_code
                     reply_dict["text"] = r.text
                     reply_dict["url"] = r.url
 
-            except Exception as e:
-                print('Select failed at SPARQL request')
-                print(e)
-                return False
-            finally:
-                reply_time = time.time()
-                QueryLogger.log_entry(label="execute_sparql_select", time_query=query_time, query_json=query,
-                                      time_reply=reply_time, reply_json=reply_dict)
+            if type(r) is requests.models.Response:
+                reply_dict["status_code"] = r.status_code
+                reply_dict["text"] = r.text
+                reply_dict["url"] = r.url
 
-            # Logout
-            self.logout()
+        except Exception as e:
+            print('Select failed at SPARQL request')
+            print(e)
+            return False
+        finally:
+            reply_time = time.time()
+            QueryLogger.log_entry(label="execute_sparql_select", time_query=query_time, query_json=query,
+                                  time_reply=reply_time, reply_json=reply_dict)
 
-            try:
-                return json.loads(r.text)
-            except Exception as e:
-                print('Error @ execute_sparql_select: Failed to load SPARQL query result to JSON')
-                print(e)
-                return None
+        # Logout
+        # self.logout()
 
-        else:
-            print("Login failed")
+        try:
+            return json.loads(r.text)
+        except Exception as e:
+            print("SPARQL SELECT REPLY:" + str(r))
+            print('Error @ execute_sparql_select: Failed to load SPARQL query result to JSON')
+            print(e)
+            return None
+
+        # else:
+        #     print("Login failed")
 
     def get_incident_report_uri(self, incident_id):
         return self.get_subject('baw:hasReportID', '"' + incident_id + '"')
@@ -328,7 +334,7 @@ class WebGenesisClient:
             cur.execute("SELECT text FROM report_texts WHERE incident_report_id=?", (incident_id,))
 
             result = cur.fetchone()
-
+            # print("sqlite query " + str(result))
             cur.close()
 
             return result[0]
@@ -606,6 +612,7 @@ class WebGenesisClient:
         try:
             results = self.execute_sparql_select(query)
             severities = [result['severity']['value'] for result in results['results']['bindings']]
+            # print("id: {},  severities: {}".format(psap_id, severities))
 
         except Exception as e:
             print(e)
@@ -647,6 +654,7 @@ class WebGenesisClient:
         try:
             results = self.execute_sparql_select(query)
             severities = [result['severity']['value'] for result in results['results']['bindings']]
+            print("Severities by crcl:"+str(severities))
 
         except Exception as e:
             print(e)
@@ -792,6 +800,7 @@ class WebGenesisClient:
             self.remove_abox_data(json.dumps(delete_query))
 
     def get_involved_participants_of_incident(self, incident_uri):
+        # print("Detecting participants from uri: " + str(incident_uri))
 
         query = """
                 SELECT ?participant_type ?confidence ?risk ?role ?number ?label
@@ -1002,7 +1011,19 @@ class WebGenesisClient:
 
         try:
             results = self.execute_sparql_select(query)
-
+            # valid_clusters = []
+            # # print("Looking for valid clusters"+str(results['results']['bindings']))
+            # for cluster in results['results']['bindings']:
+            #     inc_category = self.get_incident_raw_category(cluster['psap_id']['value'])
+            #     print("category of cluster:" + str(inc_category)+" id: "+ str(cluster['psap_id']['value']))
+            #     if inc_category.lower() != "evacuation":  # Exclude evacuation clusters
+            #         valid_clusters.append({
+            #             "psap_id": cluster['psap_id']['value'],
+            #             "lat": cluster["lat"]["value"],
+            #             "long": cluster["long"]["value"]
+            #         })
+            # print("Final clusters:"+str(valid_clusters))
+            # return valid_clusters
             return [{
                 "psap_id": result['psap_id']['value'],
                 "lat": result["lat"]["value"],
@@ -1011,7 +1032,7 @@ class WebGenesisClient:
         except:
             return []
 
-    def get_incidents_details_from_psap_incident_cluster(self, psap_id):
+    def get_incidents_details_from_psap_incident_cluster(self, psap_id, incident_id=None):
         query = """
                 SELECT ?report_id ?incident ?timestamp ?attachment_type ?priority ?severity
                         (group_concat(?reference_code;separator="|") as ?reference_codes)
@@ -1070,7 +1091,7 @@ class WebGenesisClient:
                         ?detection baw:isDetectionOf ?dataset .
                         ?detection baw:detectsIncident ?incident .
                     }
-                    UNION
+                    UNION  # XXXX
                     {
                         ?dataset baw:containsDetection ?detection .
                         ?detection baw:detectsIncident ?incident .
@@ -1093,6 +1114,8 @@ class WebGenesisClient:
 
         try:
             results = self.execute_sparql_select(query)
+            # print("Results on incidents : "+str(json.dumps(results, indent=2)))
+            # print(*[(r["report_id"]["value"], r["report_id"]["value"]) for r in results["results"]["bindings"]], sep="\n")
 
             incidents_list = []
             for result in results['results']['bindings']:
@@ -1116,7 +1139,7 @@ class WebGenesisClient:
                     incident["refs"] = []
 
                 incidents_list.append(incident)
-
+            # print("Number of incidents in Incident list: " + str(len(incidents_list)))
             return incidents_list
         except Exception as e:
             print(e)
@@ -1427,6 +1450,7 @@ class WebGenesisClient:
 
         try:
             results = self.execute_sparql_select(query)
+            print("Labels:"+ str([result["label"]["value"] for result in results['results']['bindings']]))
             return [result["label"]["value"] for result in results['results']['bindings']]
 
         except Exception as e:
@@ -1536,8 +1560,7 @@ class WebGenesisClient:
     def utc_now(self):
         return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
-
-if __name__ == "__main__":
+def testing():
     # Prepare configuration for webgenesis
     # with open("webgenesis_credentials.json", "r") as f:
     #     webgenesis_configuration = json.load(f)

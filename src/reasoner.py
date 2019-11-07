@@ -1,5 +1,4 @@
 import json
-from webgenesis_client import WebGenesisClient
 from bus_producer import BusProducer
 from datetime import datetime, timedelta
 from math import radians, sin, cos, acos
@@ -7,6 +6,7 @@ from random import randint, choice
 import string
 from loggers.time_logger import TimeLogger
 from Utilities import get_evac_status
+from wg_connection import wg_client
 
 
 class PersistantFields:
@@ -95,7 +95,8 @@ class Reasoner:
 
         self.__default_drone_cluster_radius = self.__default_cluster_radius
 
-        self.webgenesis_client = WebGenesisClient(self.conf)
+        # self.webgenesis_client = WebGenesisClient(self.conf)
+        self.webgenesis_client = wg_client
 
         if self.incoming_message is not None:
             self.topic = self.incoming_message['header']['topicName']

@@ -4,13 +4,15 @@ import requests
 import time
 from loggers.time_logger import TimeLogger
 from Utilities import add_preferredURI, get_evac_status, add_incident_location
+from wg_connection import wg_client
 
 
 class Message2KB:
     @TimeLogger.timer_decorator(tags=["message2KB"])
     def __init__(self, webgenesis_conf, message_json):
         self.conf = webgenesis_conf
-        self.webgenesis_client = WebGenesisClient(self.conf)
+        # self.webgenesis_client = WebGenesisClient(self.conf)
+        self.webgenesis_client = wg_client
 
         self.message = message_json
         self.topic = self.message['header']['topicName']
@@ -473,6 +475,10 @@ class Message2KB:
 
             # Check if the target type matches with an incident type (flood, fire, etc.)
             incident_type = self.find_first_common_element(target["type"], incident_types)
+            # print(target["type"])
+            # print("common: "+str(incident_type))
+
+            print("Incident Type:"+str(incident_type))
 
             # If target type was found to be some incident type
             if incident_type is not None:
@@ -498,6 +504,7 @@ class Message2KB:
                 data_dict["incident_type_" + target_id] = {
                     "uri": "http://beaware-project.eu/beAWARE/#" + incident_type
                 }
+
 
                 # If there are vulnerable objects as participants of incident
                 if "participants" in target and target["participants"]:

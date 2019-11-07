@@ -1,6 +1,7 @@
 from webgenesis_client import WebGenesisClient
 import json
 import load_credentials
+from wg_connection import wg_client
 
 
 def get_classes():
@@ -95,9 +96,9 @@ def remove_instances(webgenesis_client):
 def main():
     # with open("webgenesis_credentials.json", "r") as f:
     #     webgenesis_configuration = json.load(f)
-    webgenesis_configuration = load_credentials.LoadCredentials.load_wg_credentials()
+    # webgenesis_configuration = load_credentials.LoadCredentials.load_wg_credentials()
 
-    wg = WebGenesisClient(webgenesis_configuration)
+    # wg = WebGenesisClient(webgenesis_configuration)
 
     # print("Initiating process...")
 
@@ -107,7 +108,7 @@ def main():
 
     # Remove report texts from SQLite database
     print(">> Removing report texts from SQLite DB")
-    wg.delete_all_incident_report_texts_in_sqlite()
+    wg_client.delete_all_incident_report_texts_in_sqlite()
 
 
 if __name__ == "__main__":

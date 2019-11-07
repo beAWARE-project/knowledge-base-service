@@ -8,6 +8,7 @@ from loggers.time_logger import TimeLogger
 from loggers.time_logger import TIMING_ENABLED
 from webgenesis_client import WebGenesisClient
 from loggers.query_logger import QueryLogger
+from wg_connection import wg_client
 
 
 class IncomingMessagesHandler:
@@ -15,7 +16,9 @@ class IncomingMessagesHandler:
         self.database = 'messages.sqlite'
 
         # WebGenesis configuration details
+        self.webgenesis = wg_client
         self.webgenesis_conf = webgenesis_conf
+        # self.webgenesis = WebGenesisClient(self.webgenesis_conf)
 
         # Create producer
         self.producer = BusProducer()
@@ -50,22 +53,33 @@ class IncomingMessagesHandler:
         # If message successfully parsed into json and contains a "body" field
         if (message_json is not None) and ('body' in message_json):
 
-            if TIMING_ENABLED is True:
-                try:
-                    wg_client = WebGenesisClient(self.webgenesis_conf)
-                    results = wg_client.execute_sparql_select(query="""SELECT (COUNT(?report) AS ?reports)
-                                                                    WHERE {?report rdf:type baw:IncidentReport .}""")
-                    if results is not None:
-                        TimeLogger.incident_count = str(results['results']['bindings'][0]['reports']['value'])
-                except:
-                    print("Error @ getting incident count")
-                    pass
+            try:
+                if self.webgenesis.login() != 200:
+                    print("login response is different than 200")
+                    raise Exception
 
-            # Insert message to KB if necessary
-            Message2KB(self.webgenesis_conf, message_json)
+                if TIMING_ENABLED is True:
+                    try:
+                        # wg_client = WebGenesisClient(self.webgenesis_conf)
+                        results = self.webgenesis.execute_sparql_select(query="""SELECT (COUNT(?report) AS ?reports)
+                                                                        WHERE {?report rdf:type baw:IncidentReport .}""")
+                        if results is not None:
+                            TimeLogger.incident_count = str(results['results']['bindings'][0]['reports']['value'])
+                    except:
+                        print("Error @ getting incident count")
+                        pass
 
-            # Run reasoner if necessary
-            Reasoner(self.webgenesis_conf, message_json)
+                # Insert message to KB if necessary
+                Message2KB(self.webgenesis_conf, message_json)
+
+                # Run reasoner if necessary
+                Reasoner(self.webgenesis_conf, message_json)
+
+                self.webgenesis.logout()
+            except:
+                pass
+
+
 
             QueryLogger.flush_entries()  # make sure that there are not any unsaved entries at the buffer
 
