@@ -34,25 +34,46 @@ class PersistantFields:
         PersistantFields.__titles[psap_id] = title
 
     @staticmethod
-    def apply_persistant(dictionary):
+    def apply_persistant(outgoing_dictionary):
         try:
-            psap_id = dictionary['body']['incidentID']
-            if "title" in dictionary["body"]:
-                if dictionary["body"]['title'] != "":
-                    PersistantFields.set_title(psap_id, title=dictionary["body"]['title'])
-                    print("setting new title:" + str(dictionary["body"]['title']))
+            psap_id = outgoing_dictionary['body']['incidentID']
+            if "title" in outgoing_dictionary["body"] and outgoing_dictionary["body"]['title'].strip() != "":
+                PersistantFields.set_title(psap_id, title=outgoing_dictionary["body"]['title'])
+                print("setting new title:" + str(outgoing_dictionary["body"]['title']))
             elif PersistantFields.get_title(psap_id) is not None:
-                dictionary["body"]['title'] = PersistantFields.get_title(psap_id)
-                print("Using existing title:"+str(PersistantFields.get_title(psap_id)))
+                outgoing_dictionary["body"]['title'] = PersistantFields.get_title(psap_id)
+                print("Using existing title:" + str(PersistantFields.get_title(psap_id)))
 
-            if "description" in dictionary["body"]:
-                if dictionary["body"]['description'] != "":
-                    PersistantFields.set_description(psap_id, description=dictionary["body"]['description'])
-                    print("setting new description:" + str(dictionary["body"]['description']))
+            if "description" in outgoing_dictionary["body"] and outgoing_dictionary["body"][
+                'description'].strip() != "":
+                PersistantFields.set_description(psap_id, description=outgoing_dictionary["body"]['description'])
+                print("setting new description:" + str(outgoing_dictionary["body"]['description']))
             elif PersistantFields.get_description(psap_id) is not None:
-                dictionary["body"]['description'] = PersistantFields.get_description(psap_id)
-                print("Using existing description:"+str(PersistantFields.get_description(psap_id)))
+                outgoing_dictionary["body"]['description'] = PersistantFields.get_description(psap_id)
+                print("Using existing description:" + str(PersistantFields.get_description(psap_id)))
         except:
+            pass
+
+    @staticmethod
+    def update_fields_from_incoming(psap_id, incoming_message, outgoing_message):
+        try:
+            title = None
+            if "title" in incoming_message["body"]:
+                title = incoming_message["body"]["title"]
+            elif PersistantFields.get_title(psap_id) is not None:
+                title = PersistantFields.get_title(psap_id)
+            if title is not None:
+                outgoing_message["body"]["title"] = title
+
+            description = None
+            if "description" in incoming_message["body"]:
+                description = incoming_message["body"]["description"]
+            elif PersistantFields.get_description(psap_id) is not None:
+                description = PersistantFields.get_description(psap_id)
+            if description is not None:
+                outgoing_message["body"]["description"] = description
+        except:
+            print("problem with incoming message in persistant fields")
             pass
 
     @staticmethod
@@ -103,7 +124,14 @@ class Reasoner:
 
             # Run the corresponding topic function
             try:
+                #     if self.webgenesis_client.login() != 200:
+                #         print("login response is different than 200")
+                #         raise Exception
+
                 getattr(self, self.topic.lower())()
+
+                # self.webgenesis_client.logout()
+
             except:
                 pass
 
@@ -177,9 +205,13 @@ class Reasoner:
 
     @staticmethod
     def _proceed_with_TOP101(message):
-        """when there are attachements in the msg and they have attachmentType == video/image then do not send 101"""
+        """when there are attachements in the msg and they have attachmentType == video/image then do not send 101
+        or if incidentType =="https://www.iosb.fraunhofer.de/ilt/mobileApp#CompletedTask"
+        """
         try:
             attachment_type = message['body']['attachments'][0]["attachmentType"]
+            if message['body']["incidentType"] == "https://www.iosb.fraunhofer.de/ilt/mobileApp#CompletedTask":
+                return True
             if attachment_type == "image" or attachment_type == "video":
                 return False
             else:
@@ -206,6 +238,7 @@ class Reasoner:
         # Get previous incident report text
         try:
             outgoing_message = json.loads(self.webgenesis_client.get_incident_report_text_from_sqlite(incident_id))
+            # print("outgoing message from sqlite: " + str(outgoing_message))
         except Exception as e:
             print("Error 2 @ Reasoner.top018_image_analyzed")
             print("Error retrieving previous incident report text:\n", e)
@@ -242,6 +275,8 @@ class Reasoner:
         outgoing_message['body']['priority'] = self.webgenesis_client.get_incident_priority(incident_uri)
         outgoing_message['body']['severity'] = self.webgenesis_client.get_incident_cluster_severity(psap_id)
 
+        # print("Outgoing message with severity and priority:"+str(outgoing_message))
+
         # Change incident id to PSAP incident id
         outgoing_message['body']['incidentID'] = psap_id
 
@@ -260,7 +295,10 @@ class Reasoner:
         # Update incident originator
         outgoing_message['body']['incidentOriginator'] = "KB"
 
-        persistant_fields.apply_persistant(dictionary=outgoing_message)
+        persistant_fields.update_fields_from_incoming(psap_id=psap_id, incoming_message=self.incoming_message,
+                                                      outgoing_message=outgoing_message)
+
+        persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
 
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -359,7 +397,10 @@ class Reasoner:
         # Update incident originator
         outgoing_message['body']['incidentOriginator'] = "KB"
 
-        persistant_fields.apply_persistant(dictionary=outgoing_message)
+        persistant_fields.update_fields_from_incoming(psap_id=psap_id, incoming_message=self.incoming_message,
+                                                      outgoing_message=outgoing_message)
+
+        persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
 
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -451,8 +492,8 @@ class Reasoner:
         # title, description = persistant_fields.generate_title_description(psap_id, title=title, description=description)
 
         # Change title and description
-        outgoing_message['body']['title'] = title
-        outgoing_message['body']['description'] = description
+        # outgoing_message['body']['title'] = title
+        # outgoing_message['body']['description'] = description
 
         # Change incident id to PSAP incident id
         outgoing_message['body']['incidentID'] = psap_id
@@ -475,7 +516,10 @@ class Reasoner:
             outgoing_message['body']['position']['latitude'] = psap_indicent_location["lat"]
             outgoing_message['body']['position']['longitude'] = psap_indicent_location["long"]
 
-        persistant_fields.apply_persistant(dictionary=outgoing_message)
+        persistant_fields.update_fields_from_incoming(psap_id=psap_id, incoming_message=self.incoming_message,
+                                                      outgoing_message=outgoing_message)
+
+        persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
 
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -559,7 +603,10 @@ class Reasoner:
         # Update incident originator
         outgoing_message['body']['incidentOriginator'] = "KB"
 
-        persistant_fields.apply_persistant(dictionary=outgoing_message)
+        persistant_fields.update_fields_from_incoming(psap_id=psap_incident_id, incoming_message=self.incoming_message,
+                                                      outgoing_message=outgoing_message)
+
+        persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
 
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -663,7 +710,10 @@ class Reasoner:
         outgoing_message['body']['incidentCategory'] = self.webgenesis_client.get_incident_category(
             outgoing_message['body']['incidentID'])
 
-        persistant_fields.apply_persistant(dictionary=outgoing_message)
+        persistant_fields.update_fields_from_incoming(psap_id=psap_incident_id, incoming_message=self.incoming_message,
+                                                      outgoing_message=outgoing_message)
+
+        persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
 
         # Produce outgoing message TOP101
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -719,7 +769,7 @@ class Reasoner:
 
             # Produce outgoing message
             self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
-            persistant_fields.apply_persistant(dictionary=outgoing_message)
+            persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
             print(">> TOP101 Incident report for place of relief " + place["display_name"] + " was sent to PSAP")
 
     @TimeLogger.timer_decorator(tags=["reasoner_112"])
@@ -784,7 +834,10 @@ class Reasoner:
         # Update incident originator
         outgoing_message['body']['incidentOriginator'] = "KB"
 
-        persistant_fields.apply_persistant(dictionary=outgoing_message)
+        persistant_fields.update_fields_from_incoming(psap_id=psap_incident_id,incoming_message=self.incoming_message,
+                                                      outgoing_message=outgoing_message)
+
+        persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
 
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -848,7 +901,7 @@ class Reasoner:
         if title is not None:
             outgoing_message['body']['title'] = title
 
-        persistant_fields.apply_persistant(dictionary=outgoing_message)
+        persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
 
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -902,11 +955,19 @@ class Reasoner:
         #     pass
 
         if spam_flag:  # the message is spam
-            description = "INCIDENT WAS FOUND TO BE FAKE!"
-            if 'description' in outgoing_message['body']:
-                description += " " + outgoing_message['body']['description']
+            description = "INCIDENT WAS FOUND TO BE FAKE! "
+            if persistant_fields.get_description(psap_id) is not None:
+                description += persistant_fields.get_description(psap_id)
+
             outgoing_message['body']['description'] = description
-            persistant_fields.set_description(psap_id, description)
+
+            if persistant_fields.get_title(psap_id) is not None:
+                outgoing_message['body']['title'] = persistant_fields.get_title(psap_id)
+
+            persistant_fields.update_fields_from_incoming(psap_id=psap_id, incoming_message=self.incoming_message,
+                                                          outgoing_message=outgoing_message)
+
+            persistant_fields.apply_persistant(outgoing_message)
 
             # Produce outgoing message
             self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -1454,3 +1515,16 @@ class Reasoner:
                     self.webgenesis_client.update_incident_severity(incident_uri, "severe")
                 elif incident_type == 'Empty':
                     self.webgenesis_client.update_incident_severity(incident_uri, "minor")
+
+
+if __name__ == '__main__':
+    import load_credentials
+
+    with open("TOP019_modified.json", 'r') as f:
+        inmess = json.load(f)
+
+    reasoner = Reasoner(load_credentials.LoadCredentials.load_wg_credentials(), inmess[3])
+
+    from loggers import query_logger
+
+    query_logger.QueryLogger.flush_entries()
