@@ -19,5 +19,7 @@ spec:
       - backend:
           # Change to your service name (kubernetes service)
           serviceName: knowledge-base-service
+          # Change to your service port
+          servicePort: 7857
           # URL Suffix for example "/my-service"
         path: /knowledge-base-service

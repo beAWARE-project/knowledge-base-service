@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -24,10 +24,14 @@ spec:
       - image: beaware/knowledge-base-service:IMAGE_TAG
         imagePullPolicy: Always
         name: knowledge-base-service
+        ports:
+        - containerPort: 2357
+          name: http
+          protocol: TCP
         resources:
           requests:
             cpu: 200m
-            memory: 200Mi
+            memory: 256Mi
         env:
           - name: SECRET_MH_API_KEY
             valueFrom:
@@ -41,12 +45,11 @@ spec:
               key: kafka_brokers_sasl
           - name: WG_USERNAME
             valueFrom:
-             secretKeyRef:
-              name: kb-secret
-              key: user
+              secretKeyRef:
+                name: kb-secret
+                key: user
           - name: WG_PASSWORD
             valueFrom:
-             secretKeyRef:
-              name: kb-secret
-              key: pswd
-            
+              secretKeyRef:
+                name: kb-secret
+                key: pswd
