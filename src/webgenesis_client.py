@@ -5,6 +5,7 @@ from datetime import datetime
 from loggers.query_logger import QueryLogger
 import time
 import load_credentials
+from string import Template
 
 
 class WebGenesisClient:
@@ -220,6 +221,7 @@ class WebGenesisClient:
         try:
             return json.loads(r.text)
         except Exception as e:
+            print(query)
             print("SPARQL SELECT REPLY:" + str(r))
             print('Error @ execute_sparql_select: Failed to load SPARQL query result to JSON')
             print(e)
@@ -276,7 +278,63 @@ class WebGenesisClient:
         try:
             return self.execute_sparql_select(query)['results']['bindings'][0]['incident']['value']
         except:
+            print("Warning: Could not fetch incident uri (webgenesis_client.py)")
             return None
+
+    def get_incident_report_id(self, incident_uri):
+        query = Template("""
+                SELECT ?incident_report_id
+                WHERE {                 
+                    {
+                        ?dataset baw:detectsDatasetIncident <$incident_uri> . 
+                    } 
+                    UNION
+                    {
+                        ?detection baw:isDetectionOf ?dataset .
+                        ?detection baw:detectsIncident <$incident_uri> .
+                        ?dataset baw:detectsDatasetIncident <$incident_uri> .
+                    } . 
+
+                    { 
+                        ?task baw:taskProducesDataset ?dataset .
+                    }
+                    UNION
+                    {
+                        ?dataset baw:isProducedByTask ?task .
+                    }
+
+                    {
+                        ?task baw:relatesToMediaItem ?media_item .
+                    }
+                    UNION
+                    {
+                        ?media_item baw:relatesToTask ?task .
+                    }
+
+                    {
+                        ?incident_report baw:hasAttachment ?media_item .
+                    }
+                    UNION
+                    {
+                        ?media_item baw:isAttachmentOf ?incident_report .
+                    }
+
+                    ?incident_report baw:hasReportID ?incident_report_id .                    
+                }
+                """)
+        query = query.substitute(incident_uri=incident_uri)
+
+        try:
+            return self.execute_sparql_select(query)['results']['bindings'][0]['incident_report_id']['value']
+        except Exception as e:
+            print("Could not get incident report id (webgenesis_client.py)")
+            return None
+
+    def get_cluster_type_from_incident_uri(self, incident_uri):
+        psap_id = self.get_incident_report_id(incident_uri)
+        cluster_type = self.get_incident_category(self.get_incident_report_psap_id(psap_id))
+        print(str(cluster_type) + "++" + str(psap_id)+ "++" + str(incident_uri))
+        return cluster_type
 
     def get_incident_report_text(self, incident_id):
         query = """
@@ -291,6 +349,7 @@ class WebGenesisClient:
         try:
             return self.execute_sparql_select(query)['results']['bindings'][0]['text']['value']
         except:
+            print("could not get inciden report text")
             return None
 
     def update_incident_report_text(self, incident_id, new_text):
@@ -340,7 +399,7 @@ class WebGenesisClient:
             return result[0]
 
         except Exception as e:
-            print("Error @ WebGenesisClient.get_incident_report_text_from_sqlite(), incidentID: "+str(incident_id))
+            print("Error @ WebGenesisClient.get_incident_report_text_from_sqlite(), incidentID: " + str(incident_id))
             print(e)
             return None
 
@@ -384,6 +443,7 @@ class WebGenesisClient:
         try:
             return self.execute_sparql_select(query)['results']['bindings'][0]['psap_id']['value']
         except:
+            print("could not get incident report psap id")
             return incident_id
 
     def set_incident_report_psap_id(self, incident_id, psap_incident_id):
@@ -418,6 +478,7 @@ class WebGenesisClient:
         try:
             return self.execute_sparql_select(query)['results']['bindings'][0]['originator']['value']
         except:
+            print("could not get incident report originator")
             return None
 
     def get_incident_priority(self, incident_uri):
@@ -433,7 +494,7 @@ class WebGenesisClient:
 
     def get_incident_report_severity(self, incident_report_id):
         query = """
-                SELECT ?severity
+                SELECT ?severity_value
                 WHERE {
                     ?incident_report baw:hasReportID '%s' .
 
@@ -482,19 +543,24 @@ class WebGenesisClient:
                         ?dataset baw:containsDetection ?detection .
                         ?detection baw:detectsIncident ?incident .
                     } .
-
+                    
                     OPTIONAL {
                         ?incident baw:hasIncidentSeverity ?severity_value .
                     } .
-
-                    BIND(IF(BOUND(?severity_value), ?severity_value, "unknown") AS ?severity) .
-
                 }
             """ % (incident_report_id,)
 
         try:
+            # TODO: test
             results = self.execute_sparql_select(query)
-            severities = [result['severity']['value'] for result in results['results']['bindings']]
+            if results['results']['bindings']:
+                print(results['results']['bindings'])
+                severities = self.__flatten_list(
+                    [result['severity_value']['value'].split("|") for result in results['results']['bindings']])
+                print("get_incident_report_severity result:" + str(severities))
+
+            else:
+                severities = []
 
         except Exception as e:
             print(e)
@@ -513,6 +579,9 @@ class WebGenesisClient:
             return "minor"
         else:
             return "unknown"
+
+    def __flatten_list(self, original_list):
+        return [item for sublist in original_list for item in sublist]
 
     def get_incident_report_severity_calculated_by_crcl(self, incident_report_id):
         query = """
@@ -549,8 +618,9 @@ class WebGenesisClient:
             return "unknown"
 
     def get_incident_cluster_severity(self, psap_id):
+        #                 SELECT (group_concat(?severity_value;separator="|") as ?severity)
         query = """
-                SELECT ?severity
+                SELECT  ?severity_value
                 WHERE {
                     ?incident_report baw:hasPSAPIncidentID '%s' .
 
@@ -600,28 +670,35 @@ class WebGenesisClient:
                         ?detection baw:detectsIncident ?incident .
                     } .
 
-                    OPTIONAL {
-                        ?incident baw:hasIncidentSeverity ?severity_value .
-                    } .
-
-                    BIND(IF(BOUND(?severity_value), ?severity_value, "unknown") AS ?severity) .
-
+                    ?incident baw:hasIncidentSeverity ?severity_value .
                 }
             """ % (psap_id,)
 
         try:
             results = self.execute_sparql_select(query)
-            severities = [result['severity']['value'] for result in results['results']['bindings']]
-            # print("id: {},  severities: {}".format(psap_id, severities))
+            print("INCident id:" +str(psap_id))
+            print(results)
+            # print(results['results']['bindings'])
+            # print(len(results['results']['bindings']))
+            # severities = [result['severity']['value'].split("|") for result in results['results']['bindings']]
+            # severities = self.__flatten_list(original_list=severities)
+            if results['results']['bindings']:
+                print(results['results']['bindings'])
+                severities = self.__flatten_list(
+                    [result['severity_value']['value'].split("|") for result in results['results']['bindings']])
+                # print("id: {},  severities: {}".format(psap_id, severities))
+            else:
+                severities = []
 
         except Exception as e:
+            print("Problem with get_incident_cluster_severity")
             print(e)
             return "unknown"
 
         # Also append to the severities list any value calculated by the CRCL
         severity_crcl = self.get_incident_cluster_severity_calculated_by_crcl(psap_id)
         severities.append(severity_crcl)
-        print("Severity by CRCL:"+str(severity_crcl)+" for id: "+str(psap_id))
+        print("Severity by CRCL:" + str(severity_crcl) + " for id: " + str(psap_id))
         if severity_crcl != "unknown":
             return severity_crcl
 
@@ -654,7 +731,7 @@ class WebGenesisClient:
         try:
             results = self.execute_sparql_select(query)
             severities = [result['severity']['value'] for result in results['results']['bindings']]
-            print("Severities by crcl:"+str(severities))
+            print("Severities by crcl:" + str(severities))
 
         except Exception as e:
             print(e)
@@ -692,6 +769,7 @@ class WebGenesisClient:
             self.remove_abox_data(json.dumps(delete_query))
 
         except:
+            print("could not delete old incident severity to update")
             pass
 
         # Insert new value
@@ -710,6 +788,29 @@ class WebGenesisClient:
         self.add_abox_data(json.dumps(insert_query))
 
         print("severity update end", self.utc_now())
+
+    def add_incident_severity(self, incident_uri, new_value):
+
+        print("severity add start", self.utc_now())
+
+        # Insert new value
+        insert_query = {
+            "defaultprefix": "http://beaware-project.eu/beAWARE/#",
+            "data": {
+                "incident": {
+                    "uri": incident_uri,
+                    "properties": {
+                        "hasIncidentSeverity": new_value
+                    }
+                }
+            }
+        }
+
+        print(insert_query)
+
+        self.add_abox_data(json.dumps(insert_query))
+
+        print("severity add end", self.utc_now())
 
     def set_incident_report_severity_calculated_by_crcl(self, report_id, severity_value):
 
@@ -739,7 +840,7 @@ class WebGenesisClient:
     def update_incident_report_severity_calculated_by_crcl(self, report_id, new_severity_value):
         new_severity_value = new_severity_value.lower()
         if new_severity_value not in self._severity_values:
-            print("Not a valid severity value from to crcl to update: "+str(new_severity_value))
+            print("Not a valid severity value from to crcl to update: " + str(new_severity_value))
             return
 
         try:
@@ -758,7 +859,7 @@ class WebGenesisClient:
             except:
                 print("PROBLEM WITH REMOVING THE OLD CRCL SEVERITY")
                 print(incident_report_uri)
-                print("old severity:"+str(old_severity_value) + " new severity:" + str(new_severity_value))
+                print("old severity:" + str(old_severity_value) + " new severity:" + str(new_severity_value))
                 pass
 
             # Insert severity value
@@ -782,7 +883,7 @@ class WebGenesisClient:
         values_to_remove = self._severity_values.copy()
         if values is not None:
             values_to_remove = values
-            print("Removing old crcl severity values:"+str(values_to_remove))
+            print("Removing old crcl severity values:" + str(values_to_remove))
 
         for value in values_to_remove:
             # delete severity value
@@ -802,62 +903,145 @@ class WebGenesisClient:
     def get_involved_participants_of_incident(self, incident_uri):
         # print("Detecting participants from uri: " + str(incident_uri))
 
-        query = """
-                SELECT ?participant_type ?confidence ?risk ?role ?number ?label
-                        (group_concat(?reference_code;separator="|") as ?reference_codes)
-                WHERE {
-                    {
-                        ?participant baw:participantIsInvolvedIn <%s> .
-                    }
-                    UNION
-                    {
-                        <%s> baw:involvesParticipant ?participant .
-                    }                    
-                    
-                    ?participant rdf:type ?participant_type_class .                    
-                    MINUS {
-                        ?participant rdf:type ?super_type .
-                        ?super_type rdfs:subClassOf ?participant_type_class .
-                        FILTER(?super_type != ?participant_type_class)
-                    } 
-                    ?participant_type_class rdfs:label ?participant_type .
-                    
-                    
-                    OPTIONAL{
-                        ?participant baw:participantIsDetectedBy ?detection .
+        """
+        {
+                            ?detection baw:detectsParticipant ?participant.
+                        }
+                        UNION
+                        {
+                            ?participant baw:participantIsDetectedBy ?detection.
+                        }
+
+                        OPTIONAL{
+                        ?participant baw:participantIsDetectedBy ?detection.
+
                         ?detection baw:hasDetectionConfidence ?confidence_numeric .
                         ?detection baw:hasDetectionRisk ?risk_numeric .
-    
-                        BIND((IF(?confidence_numeric < 0.5, "low", IF (?confidence_numeric < 0.75, "medium", "high"))) AS ?confidence_value) .
-                        BIND((IF(?risk_numeric < 0.5, "low", IF (?risk_numeric < 0.75, "medium", "high"))) AS ?risk_value) .
-                    } .
-                    
-                    BIND(IF(BOUND(?confidence_value), ?confidence_value, "undefined") AS ?confidence) .
-                    BIND(IF(BOUND(?risk_value), ?risk_value, "undefined") AS ?risk) .
-                    
-                    OPTIONAL {
-                        ?participant baw:hasTextAnalysisRole ?role
-                    }.
-                    
-                    OPTIONAL {
-                        ?participant baw:hasTextAnalysisQuantity ?number
-                    }.
-                    
-                    OPTIONAL {
-                        ?participant baw:instanceDisplayName ?label
-                    }.
-                    
-                    OPTIONAL {
-                        ?participant baw:hasReferenceCode ?reference_code
-                    }.
 
-                    MINUS {
-                        ?other_class rdfs:subClassOf ?type
-                        FILTER (?other_class != ?type)
-                    }
-                } GROUP BY ?participant ?participant_type ?confidence ?risk ?role ?number ?label
-                    ORDER BY ?participant_type
-                """ % (incident_uri, incident_uri,)
+                        BIND((IF(?risk_numeric < 0.5, "low", IF (?risk_numeric < 0.75, "medium", "high"))) AS ?risk_value) .
+                        BIND((IF(?confidence_numeric < 0.5, "low", IF (?confidence_numeric < 0.75, "medium", "high"))) AS ?confidence_value) .
+
+                    } .
+
+
+        """
+
+        # query = """
+        #                 SELECT ?participant_type ?confidence ?risk ?role ?number ?label
+        #                         (group_concat(?reference_code;separator="|") as ?reference_codes)
+        #                 WHERE {
+        #                     {
+        #                         ?participant baw:participantIsInvolvedIn <%s> .
+        #                     }
+        #                     UNION
+        #                     {
+        #                         <%s> baw:involvesParticipant ?participant .
+        #                     }
+        #
+        #                     ?participant rdf:type ?participant_type_class .
+        #                     MINUS {
+        #                         ?participant rdf:type ?super_type .
+        #                         ?super_type rdfs:subClassOf ?participant_type_class .
+        #                         FILTER(?super_type != ?participant_type_class)
+        #                     }
+        #                     ?participant_type_class rdfs:label ?participant_type .
+        #
+        #
+        #                     OPTIONAL{
+        #                         ?participant baw:participantIsDetectedBy ?detection.
+        #
+        #                         ?detection baw:hasDetectionConfidence ?confidence_numeric .
+        #                         ?detection baw:hasDetectionRisk ?risk_numeric .
+        #
+        #                         BIND((IF(?confidence_numeric < 0.5, "low", IF (?confidence_numeric < 0.75, "medium", "high"))) AS ?confidence_value) .
+        #                         BIND((IF(?risk_numeric < 0.5, "low", IF (?risk_numeric < 0.75, "medium", "high"))) AS ?risk_value) .
+        #                     } .
+        #
+        #                     BIND(IF(BOUND(?confidence_value), ?confidence_value, "undefined") AS ?confidence) .
+        #                     BIND(IF(BOUND(?risk_value), ?risk_value, "undefined") AS ?risk) .
+        #
+        #                     OPTIONAL {
+        #                         ?participant baw:hasTextAnalysisRole ?role
+        #                     }.
+        #
+        #                     OPTIONAL {
+        #                         ?participant baw:hasTextAnalysisQuantity ?number
+        #                     }.
+        #
+        #                     OPTIONAL {
+        #                         ?participant baw:instanceDisplayName ?label
+        #                     }.
+        #
+        #                     OPTIONAL {
+        #                         ?participant baw:hasReferenceCode ?reference_code
+        #                     }.
+        #                     MINUS {
+        #                         ?other_class rdfs:subClassOf ?type
+        #                         FILTER (?other_class != ?type)
+        #                     }
+        #                 } GROUP BY ?participant ?participant_type ?confidence ?risk ?role ?number ?label
+        #                     ORDER BY ?participant_type
+        #                 """ % (incident_uri, incident_uri,)
+        query = """
+                                SELECT ?participant_type ?confidence ?risk ?role ?number ?label
+                                        (group_concat(?reference_code;separator="|") as ?reference_codes)
+                                WHERE {
+                                    {
+                                        ?participant baw:participantIsInvolvedIn <%s> .
+                                    }
+                                    UNION
+                                    {
+                                        <%s> baw:involvesParticipant ?participant .
+                                    }
+
+                                    ?participant rdf:type ?participant_type_class .
+                                    MINUS {
+                                        ?participant rdf:type ?super_type .
+                                        ?super_type rdfs:subClassOf ?participant_type_class .
+                                        FILTER(?super_type != ?participant_type_class)
+                                    }
+                                    ?participant_type_class rdfs:label ?participant_type .
+
+
+                                    OPTIONAL{
+                                        {
+                                            ?detection baw:detectsParticipant ?participant.
+                                        }
+                                        UNION {
+                                            ?participant baw:participantIsDetectedBy ?detection.
+                                        }
+                                        ?detection baw:hasDetectionConfidence ?confidence_numeric .
+                                        ?detection baw:hasDetectionRisk ?risk_numeric .
+
+                                        BIND((IF(?confidence_numeric < 0.5, "low", IF (?confidence_numeric < 0.75, "medium", "high"))) AS ?confidence_value) .
+                                        BIND((IF(?risk_numeric < 0.5, "low", IF (?risk_numeric < 0.75, "medium", "high"))) AS ?risk_value) .
+                                    } .
+
+                                    BIND(IF(BOUND(?confidence_value), ?confidence_value, "undefined") AS ?confidence) .
+                                    BIND(IF(BOUND(?risk_value), ?risk_value, "undefined") AS ?risk) .
+
+                                    OPTIONAL {
+                                        ?participant baw:hasTextAnalysisRole ?role
+                                    }.
+
+                                    OPTIONAL {
+                                        ?participant baw:hasTextAnalysisQuantity ?number
+                                    }.
+
+                                    OPTIONAL {
+                                        ?participant baw:instanceDisplayName ?label
+                                    }.
+
+                                    OPTIONAL {
+                                        ?participant baw:hasReferenceCode ?reference_code
+                                    }.
+                                    MINUS {
+                                        ?other_class rdfs:subClassOf ?type
+                                        FILTER (?other_class != ?type)
+                                    }
+                                } GROUP BY ?participant ?participant_type ?confidence ?risk ?role ?number ?label
+                                    ORDER BY ?participant_type
+                                """ % (incident_uri, incident_uri,)
         try:
             # return self.execute_sparql_select(query)['results']['bindings'][0]['attachment']['value']
             results = self.execute_sparql_select(query)
@@ -946,6 +1130,7 @@ class WebGenesisClient:
             results = self.execute_sparql_select(query)
             return [result['attachment']['value'] for result in results['results']['bindings']]
         except:
+            print("could not get attachments of incident report")
             return None
 
     def get_description_items_of_incident_report(self, incident_id):
@@ -967,6 +1152,7 @@ class WebGenesisClient:
             results = self.execute_sparql_select(query)
             return [result['description']['value'] for result in results['results']['bindings']]
         except:
+            print("could not get description items of incident report")
             return None
 
     def get_subject(self, predicate, object):
@@ -980,6 +1166,7 @@ class WebGenesisClient:
         try:
             return self.execute_sparql_select(query)['results']['bindings'][0]['subject']['value']
         except:
+            print("could get subject")
             return None
 
     def get_object(self, subject, predicate):
@@ -993,6 +1180,7 @@ class WebGenesisClient:
         try:
             return self.execute_sparql_select(query)['results']['bindings'][0]['object']['value']
         except:
+            print("could get object")
             return None
 
     def get_psap_incident_locations(self):
@@ -1030,12 +1218,14 @@ class WebGenesisClient:
                 "long": result["long"]["value"]
             } for result in results['results']['bindings']]
         except:
+            print("could psap incident locations")
             return []
 
     def get_incidents_details_from_psap_incident_cluster(self, psap_id, incident_id=None):
         query = """
-                SELECT ?report_id ?incident ?timestamp ?attachment_type ?priority ?severity
+                SELECT ?report_id ?incident ?timestamp ?attachment_type ?priority
                         (group_concat(?reference_code;separator="|") as ?reference_codes)
+                        (group_concat(?severity_value;separator="|") as ?severity)
                 WHERE {
                     ?incident_report baw:hasPSAPIncidentID '%s' .
                     ?incident_report baw:hasReportID ?report_id .
@@ -1107,9 +1297,8 @@ class WebGenesisClient:
                     } .
 
                     BIND(IF(BOUND(?priority_value), ?priority_value, "unknown") AS ?priority) .
-                    BIND(IF(BOUND(?severity_value), ?severity_value, "unknown") AS ?severity) .
                     
-                } GROUP BY ?report_id ?incident ?timestamp ?attachment_type ?priority ?severity
+                } GROUP BY ?report_id ?incident ?timestamp ?attachment_type ?priority 
             """ % (psap_id,)
 
         try:
@@ -1120,6 +1309,13 @@ class WebGenesisClient:
             incidents_list = []
             for result in results['results']['bindings']:
 
+                if "severity" in result and result["severity"]:
+                    # print(result["severity"])
+                    severity = self.__get_max_severity(result["severity"]["value"])
+                    # print("get_incident_report_severity result:" + str(severity))
+                else:
+                    severity = "unknown"
+                # print("get_incidents_details_from_psap_incident_cluster severity:"+str(severity)+ ", "+ str(psap_id))
                 incident = {
                     "cluster_id": psap_id,
                     "report_id": result['report_id']['value'],
@@ -1127,7 +1323,7 @@ class WebGenesisClient:
                     "timestamp": result['timestamp']['value'],
                     "attachment_type": result['attachment_type']['value'],
                     "priority": result['priority']['value'],
-                    "severity": result['severity']['value']
+                    "severity": severity
                 }
 
                 # Check if references where found
@@ -1145,10 +1341,26 @@ class WebGenesisClient:
             print(e)
             return []
 
+    def __get_max_severity(self, severity_list):
+        if severity_list:
+            severity_list = [s.lower() for s in severity_list.split("|")]
+            if "extreme" in severity_list:
+                return "extreme"
+            if "severe" in severity_list:
+                return "severe"
+            if "moderate" in severity_list:
+                return "moderate"
+            if "minor" in severity_list:
+                return "minor"
+
+        return "unknown"
+
     def get_incidents_details_from_all_psap_incident_clusters(self):
         query = """
-                SELECT ?psap_id ?report_id ?incident ?timestamp ?attachment_type ?priority ?severity
+                SELECT ?psap_id ?report_id ?incident ?timestamp ?attachment_type ?priority 
                         (group_concat(?reference_code;separator="|") as ?reference_codes)
+                        (group_concat(?severity_value;separator="|") as ?severity)
+                        
                 WHERE {
                     ?incident_report baw:hasPSAPIncidentID ?psap_id .
                     ?incident_report baw:hasReportID ?report_id .
@@ -1207,6 +1419,9 @@ class WebGenesisClient:
 
                     OPTIONAL {
                         ?incident baw:hasIncidentPriority ?priority_value .
+                    } .
+                    
+                    OPTIONAL {
                         ?incident baw:hasIncidentSeverity ?severity_value .
                     } .
                     
@@ -1215,7 +1430,6 @@ class WebGenesisClient:
                     } .
 
                     BIND(IF(BOUND(?priority_value), ?priority_value, "unknown") AS ?priority) .
-                    BIND(IF(BOUND(?severity_value), ?severity_value, "unknown") AS ?severity) .
 
                 } GROUP BY ?psap_id ?report_id ?incident ?timestamp ?attachment_type ?priority ?severity
             """
@@ -1225,6 +1439,13 @@ class WebGenesisClient:
 
             incidents_list = []
             for result in results['results']['bindings']:
+                # print("RESULLLTTTT: " + str(result))
+
+                if "severity" in result and result["severity"]:
+                    severity = self.__get_max_severity(result["severity"]["value"])
+                    # print("get_incident_report_severity result:" + str(severity))
+                else:
+                    severity = "unknown"
 
                 incident = {
                     "cluster_id": result['psap_id']['value'],
@@ -1233,7 +1454,7 @@ class WebGenesisClient:
                     "timestamp": result['timestamp']['value'],
                     "attachment_type": result['attachment_type']['value'],
                     "priority": result['priority']['value'],
-                    "severity": result['severity']['value']
+                    "severity": severity
                 }
 
                 # Check if references where found
@@ -1450,7 +1671,7 @@ class WebGenesisClient:
 
         try:
             results = self.execute_sparql_select(query)
-            print("Labels:"+ str([result["label"]["value"] for result in results['results']['bindings']]))
+            # print("Labels:" + str([result["label"]["value"] for result in results['results']['bindings']]))
             return [result["label"]["value"] for result in results['results']['bindings']]
 
         except Exception as e:
@@ -1467,7 +1688,8 @@ class WebGenesisClient:
             for incident in incidents_of_cluster:
                 incident_types.append(self.get_type_of_incident(incident_uri=incident["incident_uri"]))
             # print("incidents types:" + str(incident_types))
-            incident_types = list(filter(lambda x: x != "Evacuation" and x != "Other" and x != "OtherIncident", incident_types))
+            incident_types = list(
+                filter(lambda x: x != "Evacuation" and x != "Other" and x != "OtherIncident", incident_types))
             print("incidents types without evac/other:" + str(incident_types))
         except Exception as e:
             print("Error @ WebGenesisClient.get_incident_category()")
@@ -1559,6 +1781,7 @@ class WebGenesisClient:
 
     def utc_now(self):
         return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
 
 def testing():
     # Prepare configuration for webgenesis

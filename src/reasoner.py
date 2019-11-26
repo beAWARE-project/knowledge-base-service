@@ -9,49 +9,55 @@ from Utilities import get_evac_status
 from wg_connection import wg_client
 
 
-class PersistantFields:
+class PersistentFields:
     __descriptions = dict()
     __titles = dict()
 
     @staticmethod
     def get_description(psap_id):
-        if psap_id in PersistantFields.__descriptions:
-            return PersistantFields.__descriptions[psap_id]
+        if psap_id in PersistentFields.__descriptions:
+            return PersistentFields.__descriptions[psap_id]
         return None
 
     @staticmethod
     def get_title(psap_id):
-        if psap_id in PersistantFields.__titles:
-            return PersistantFields.__titles[psap_id]
+        if psap_id in PersistentFields.__titles:
+            return PersistentFields.__titles[psap_id]
         return None
 
     @staticmethod
     def set_description(psap_id, description):
-        PersistantFields.__descriptions[psap_id] = description
+        PersistentFields.__descriptions[psap_id] = description
 
     @staticmethod
     def set_title(psap_id, title):
-        PersistantFields.__titles[psap_id] = title
+        PersistentFields.__titles[psap_id] = title
 
     @staticmethod
-    def apply_persistant(outgoing_dictionary):
+    def clear_all():
+        PersistentFields.__descriptions = dict()
+        PersistentFields.__titles = dict()
+
+    @staticmethod
+    def apply_persistent(outgoing_dictionary):
         try:
             psap_id = outgoing_dictionary['body']['incidentID']
             if "title" in outgoing_dictionary["body"] and outgoing_dictionary["body"]['title'].strip() != "":
-                PersistantFields.set_title(psap_id, title=outgoing_dictionary["body"]['title'])
+                PersistentFields.set_title(psap_id, title=outgoing_dictionary["body"]['title'])
                 print("setting new title:" + str(outgoing_dictionary["body"]['title']))
-            elif PersistantFields.get_title(psap_id) is not None:
-                outgoing_dictionary["body"]['title'] = PersistantFields.get_title(psap_id)
-                print("Using existing title:" + str(PersistantFields.get_title(psap_id)))
+            elif PersistentFields.get_title(psap_id) is not None:
+                outgoing_dictionary["body"]['title'] = PersistentFields.get_title(psap_id)
+                print("Using existing title:" + str(PersistentFields.get_title(psap_id)))
 
             if "description" in outgoing_dictionary["body"] and outgoing_dictionary["body"][
                 'description'].strip() != "":
-                PersistantFields.set_description(psap_id, description=outgoing_dictionary["body"]['description'])
+                PersistentFields.set_description(psap_id, description=outgoing_dictionary["body"]['description'])
                 print("setting new description:" + str(outgoing_dictionary["body"]['description']))
-            elif PersistantFields.get_description(psap_id) is not None:
-                outgoing_dictionary["body"]['description'] = PersistantFields.get_description(psap_id)
-                print("Using existing description:" + str(PersistantFields.get_description(psap_id)))
+            elif PersistentFields.get_description(psap_id) is not None:
+                outgoing_dictionary["body"]['description'] = PersistentFields.get_description(psap_id)
+                print("Using existing description:" + str(PersistentFields.get_description(psap_id)))
         except:
+            print("warn: could not apply persistant")
             pass
 
     @staticmethod
@@ -60,16 +66,23 @@ class PersistantFields:
             title = None
             if "title" in incoming_message["body"]:
                 title = incoming_message["body"]["title"]
-            elif PersistantFields.get_title(psap_id) is not None:
-                title = PersistantFields.get_title(psap_id)
+            elif PersistentFields.get_title(psap_id) is not None:
+                title = PersistentFields.get_title(psap_id)
+
             if title is not None:
+                if "report" in title.lower():
+                    title = "Report"
+                elif "incident" in title.lower():
+                    tokens = title.split("_")
+                    title = "_".join(tokens[:2])
                 outgoing_message["body"]["title"] = title
 
             description = None
             if "description" in incoming_message["body"]:
                 description = incoming_message["body"]["description"]
-            elif PersistantFields.get_description(psap_id) is not None:
-                description = PersistantFields.get_description(psap_id)
+            elif PersistentFields.get_description(psap_id) is not None:
+                description = PersistentFields.get_description(psap_id)
+
             if description is not None:
                 outgoing_message["body"]["description"] = description
         except:
@@ -92,18 +105,18 @@ class PersistantFields:
         :return:
         """
         if description is None:
-            description = PersistantFields.get_description(psap_id)
+            description = PersistentFields.get_description(psap_id)
         else:
-            PersistantFields.set_description(psap_id, description)
+            PersistentFields.set_description(psap_id, description)
         if title is None:
-            title = PersistantFields.get_title(psap_id)
+            title = PersistentFields.get_title(psap_id)
         else:
-            PersistantFields.set_title(psap_id, title)
+            PersistentFields.set_title(psap_id, title)
 
         return title, description
 
 
-persistant_fields = PersistantFields()
+persistent_fields = PersistentFields()
 
 
 class Reasoner:
@@ -197,11 +210,33 @@ class Reasoner:
 
         if Reasoner._proceed_with_TOP101(outgoing_message):
             # Produce outgoing message
-            persistant_fields.apply_persistant(outgoing_message)
+            persistent_fields.apply_persistent(outgoing_message)
             self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
             print(">> TOP101 Incident report sent to PSAP")
         else:
             print("TOP101 is of type image or video, no TOP101 will be sent")
+
+    @TimeLogger.timer_decorator(tags=["top805"])
+    def top805_kbs_triggers(self):
+
+        try:
+            operation = self.incoming_message["body"]["title"]
+            if operation == "clear_kbs":
+                print(">> Clearing persistent title and description fields...")
+                persistent_fields.clear_all()
+                print(">> Removing report texts from SQLite DB")
+                wg_client.delete_all_incident_report_texts_in_sqlite()
+
+            elif operation == "clear_persistent":
+                print(">> Clearing persistent title and description fields")
+                persistent_fields.clear_all()
+
+            elif operation == "clear_sqlite":
+                print(">> Removing report texts from SQLite DB")
+                wg_client.delete_all_incident_report_texts_in_sqlite()
+
+        except Exception as e:
+            print("Could not perform TOP805 operation")
 
     @staticmethod
     def _proceed_with_TOP101(message):
@@ -230,6 +265,8 @@ class Reasoner:
             print("Error 1 @ Reasoner.top018_image_analyzed")
             print("Error in message:\n", e)
             return
+
+        psap_id = self.webgenesis_client.get_incident_report_psap_id(incident_id)
 
         # Perform reasoning
         self.run_reasoning()
@@ -295,10 +332,10 @@ class Reasoner:
         # Update incident originator
         outgoing_message['body']['incidentOriginator'] = "KB"
 
-        persistant_fields.update_fields_from_incoming(psap_id=psap_id, incoming_message=self.incoming_message,
+        persistent_fields.update_fields_from_incoming(psap_id=psap_id, incoming_message=self.incoming_message,
                                                       outgoing_message=outgoing_message)
 
-        persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
+        persistent_fields.apply_persistent(outgoing_dictionary=outgoing_message)
 
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -336,6 +373,9 @@ class Reasoner:
             print("Error in message:\n", e)
             return
 
+        # Find psap id
+        psap_id = self.webgenesis_client.get_incident_report_psap_id(incident_id)
+
         # Perform reasoning
         self.run_reasoning()
 
@@ -371,9 +411,6 @@ class Reasoner:
         }
         outgoing_message['body']['attachments'].append(analyzed_attachment)
 
-        # Find psap id
-        psap_id = self.webgenesis_client.get_incident_report_psap_id(incident_id)
-
         # Add priority and severity
         incident_uri = self.webgenesis_client.get_incident_uri(incident_id)
         outgoing_message['body']['priority'] = self.webgenesis_client.get_incident_priority(incident_uri)
@@ -397,10 +434,10 @@ class Reasoner:
         # Update incident originator
         outgoing_message['body']['incidentOriginator'] = "KB"
 
-        persistant_fields.update_fields_from_incoming(psap_id=psap_id, incoming_message=self.incoming_message,
+        persistent_fields.update_fields_from_incoming(psap_id=psap_id, incoming_message=self.incoming_message,
                                                       outgoing_message=outgoing_message)
 
-        persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
+        persistent_fields.apply_persistent(outgoing_dictionary=outgoing_message)
 
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -441,6 +478,9 @@ class Reasoner:
         # If no findings in text analysis (data field is empty), return
         if not analysis_results:
             return
+
+        # Find psap id
+        psap_id = self.webgenesis_client.get_incident_report_psap_id(incident_id)
 
         # Perform reasoning
         self.run_reasoning()
@@ -516,10 +556,10 @@ class Reasoner:
             outgoing_message['body']['position']['latitude'] = psap_indicent_location["lat"]
             outgoing_message['body']['position']['longitude'] = psap_indicent_location["long"]
 
-        persistant_fields.update_fields_from_incoming(psap_id=psap_id, incoming_message=self.incoming_message,
+        persistent_fields.update_fields_from_incoming(psap_id=psap_id, incoming_message=self.incoming_message,
                                                       outgoing_message=outgoing_message)
 
-        persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
+        persistent_fields.apply_persistent(outgoing_dictionary=outgoing_message)
 
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -603,10 +643,10 @@ class Reasoner:
         # Update incident originator
         outgoing_message['body']['incidentOriginator'] = "KB"
 
-        persistant_fields.update_fields_from_incoming(psap_id=psap_incident_id, incoming_message=self.incoming_message,
+        persistent_fields.update_fields_from_incoming(psap_id=psap_incident_id, incoming_message=self.incoming_message,
                                                       outgoing_message=outgoing_message)
 
-        persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
+        persistent_fields.apply_persistent(outgoing_dictionary=outgoing_message)
 
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -651,6 +691,9 @@ class Reasoner:
 
         if not incident_detected and evacuation != 'end':
             return
+
+        # Find psap id
+        psap_id = self.webgenesis_client.get_incident_report_psap_id(incident_id)
 
         # Perform reasoning
         self.run_reasoning()
@@ -710,10 +753,10 @@ class Reasoner:
         outgoing_message['body']['incidentCategory'] = self.webgenesis_client.get_incident_category(
             outgoing_message['body']['incidentID'])
 
-        persistant_fields.update_fields_from_incoming(psap_id=psap_incident_id, incoming_message=self.incoming_message,
+        persistent_fields.update_fields_from_incoming(psap_id=psap_incident_id, incoming_message=self.incoming_message,
                                                       outgoing_message=outgoing_message)
 
-        persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
+        persistent_fields.apply_persistent(outgoing_dictionary=outgoing_message)
 
         # Produce outgoing message TOP101
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -769,7 +812,7 @@ class Reasoner:
 
             # Produce outgoing message
             self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
-            persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
+            persistent_fields.apply_persistent(outgoing_dictionary=outgoing_message)
             print(">> TOP101 Incident report for place of relief " + place["display_name"] + " was sent to PSAP")
 
     @TimeLogger.timer_decorator(tags=["reasoner_112"])
@@ -834,10 +877,10 @@ class Reasoner:
         # Update incident originator
         outgoing_message['body']['incidentOriginator'] = "KB"
 
-        persistant_fields.update_fields_from_incoming(psap_id=psap_incident_id,incoming_message=self.incoming_message,
+        persistent_fields.update_fields_from_incoming(psap_id=psap_incident_id, incoming_message=self.incoming_message,
                                                       outgoing_message=outgoing_message)
 
-        persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
+        persistent_fields.apply_persistent(outgoing_dictionary=outgoing_message)
 
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -901,7 +944,7 @@ class Reasoner:
         if title is not None:
             outgoing_message['body']['title'] = title
 
-        persistant_fields.apply_persistant(outgoing_dictionary=outgoing_message)
+        persistent_fields.apply_persistent(outgoing_dictionary=outgoing_message)
 
         # Produce outgoing message
         self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -956,19 +999,19 @@ class Reasoner:
 
         if spam_flag:  # the message is spam
             description = "INCIDENT WAS FOUND TO BE FAKE! "
-            if persistant_fields.get_description(psap_id) is not None:
-                description += persistant_fields.get_description(psap_id)
+            if persistent_fields.get_description(psap_id) is not None:
+                description += persistent_fields.get_description(psap_id)
 
             outgoing_message['body']['description'] = description
-            persistant_fields.set_description(psap_id, description)
+            persistent_fields.set_description(psap_id, description)
 
-            if persistant_fields.get_title(psap_id) is not None:
-                outgoing_message['body']['title'] = persistant_fields.get_title(psap_id)
+            if persistent_fields.get_title(psap_id) is not None:
+                outgoing_message['body']['title'] = persistent_fields.get_title(psap_id)
 
-            persistant_fields.update_fields_from_incoming(psap_id=psap_id, incoming_message=self.incoming_message,
+            persistent_fields.update_fields_from_incoming(psap_id=psap_id, incoming_message=self.incoming_message,
                                                           outgoing_message=outgoing_message)
 
-            persistant_fields.apply_persistant(outgoing_message)
+            persistent_fields.apply_persistent(outgoing_message)
 
             # Produce outgoing message
             self.produce_message(outgoing_message['header']['topicName'], outgoing_message)
@@ -1021,9 +1064,7 @@ class Reasoner:
 
         outgoing_message['body']['incidents'] = []
         for incident in incidents_details_list:
-            print(
-                "INCIDENT ID: " + str(incident_id) + " REPORT ID : " + str(incident["report_id"]) + " TRIGGER: " + str(
-                    trigger))
+            # print("INCIDENT ID: " + str(incident_id) + " REPORT ID : " + str(incident["report_id"]) + " TRIGGER: " + str(trigger))
             if incident_id == incident["report_id"] or trigger == "SMA":
                 outgoing_message['body']['incidents'].append(
                     self.create_incident_section_for_report_generator(incident))
@@ -1069,6 +1110,7 @@ class Reasoner:
             with open("033_" + str(time.time()) + ".json", 'w') as f:
                 f.write(json.dumps(outgoing_message, indent=2))
         except:
+            print("warn: could not write 033 to file")
             pass
 
         # Produce outgoing message to MRG
@@ -1422,33 +1464,61 @@ class Reasoner:
         should be of High severity.
         """
         # TODO: determine if we need severe/extreme/something else (e.g. keep it)
+        # return
+        # self.webgenesis_client.update_incident_severity(incident_uri, "severe")
 
-        return
-        # query = """
-        #         SELECT DISTINCT ?incident
-        #         WHERE {
-        #             ?incident rdf:type baw:Incident .
-        #             MINUS {?incident baw:isOfIncidentType baw:OtherIncident .}
-        #
-        #             ?participant baw:participantIsInvolvedIn ?incident .
-        #             ?participant rdf:type baw:Human .
-        #
-        #             MINUS {
-        #                 ?incident baw:hasIncidentSeverity "severe" .
-        #             }
-        #         }
-        #         """
-        # # print("Rule 1")
-        # # print(query)
-        # results = self.webgenesis_client.execute_sparql_select(query)
-        #
-        # # print(results)
-        # if results is not None:
-        #     for result in results['results']['bindings']:
-        #         incident_uri = result['incident']['value']
-        #
-        #         # Update incident severity value
-        #         self.webgenesis_client.update_incident_severity(incident_uri, "severe")
+        query = """
+                SELECT ?incident (group_concat(?severity_value;separator="|") as ?severities) 
+                WHERE {
+                    ?incident rdf:type baw:Incident .
+
+                    ?participant baw:participantIsInvolvedIn ?incident .
+                    ?participant rdf:type baw:Human .
+                    
+                    OPTIONAL {
+                        ?incident baw:hasIncidentSeverity ?severity_value .
+                    } .
+
+                } GROUP BY ?incident
+                """
+
+        # MINUS {
+        #     ?incident baw:hasIncidentSeverity "severe" .
+        # }
+        # BIND(IF(BOUND(?severity_value), ?severity_value, "unknown") AS ?severity) .
+        # print("Rule 1")
+        # print(query)
+        #     ?incident baw:hasIncidentSeverity "extreme" .
+        # ?incident baw:hasIncidentSeverity "severe" .
+        results = self.webgenesis_client.execute_sparql_select(query)
+
+        # print("Rule 1" + str(results))
+        # print("cluster_type:" + str(cluster_type))
+
+        # print(results)
+        if results is not None:
+            for result in results['results']['bindings']:
+                # cluster_type = wg_client.get_incident_category(
+                #     self.webgenesis_client.get_incident_report_psap_id(incident_id))
+
+                cluster_type = "Other"
+                if "severities" in result and result['severities']['value']:
+                    previous_severities = result['severities']['value'].split("|")
+                else:
+                    previous_severities = []
+                incident_uri = result['incident']['value']
+                cluster_type = self.webgenesis_client.get_cluster_type_from_incident_uri(incident_uri)
+                # psap_id = wg_client.get_incident_report_id(incident_uri)
+                # psap_id
+                # print("INCIDENT:" + str(incident_uri))
+                if cluster_type != "Other" and "severe" not in previous_severities and "extreme" not in previous_severities:
+                    # if "severe" not in previous_severities and "extreme" not in previous_severities:
+                    print("RULE 1:" + str(previous_severities) + "," + str(cluster_type) + ", " + str(incident_uri))
+                    print("Severity Update:" + str(previous_severities) + " ---------> " + str("severe"))
+                    # Update incident severity value
+                    # self.webgenesis_client.update_incident_severity(incident_uri, "severe")
+                    self.webgenesis_client.add_incident_severity(incident_uri, "severe")
+                    # if "current_level" in result and result['current_level']['value'] !="severe" and result['current_level']['value'] !="extreme":
 
     def reasoning_rule_2(self):
         """

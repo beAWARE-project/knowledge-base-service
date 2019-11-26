@@ -55,7 +55,8 @@ if __name__ == "__main__":
         'TOP112_SUMMARY_TRIGGER',
         'TOP006_INCIDENT_REPORT_CRCL',
         'TOP007_UPDATE_INCIDENT_RISK',
-        'TOP801_INCIDENT_VALIDATION'
+        'TOP801_INCIDENT_VALIDATION',
+        'TOP805_KBS_TRIGGERS'
     ]
 
     # Decorate terminal
@@ -65,7 +66,7 @@ if __name__ == "__main__":
     
     print("WebGenesis URL:", webgenesis_configuration["hostname"])
 
-    clear_KB_v3.main()
+    # clear_KB_v3.main()
 
     kb_service = KBService(listen_to_topics=topics, webgenesis_conf=webgenesis_configuration)
     kb_service.run_service()

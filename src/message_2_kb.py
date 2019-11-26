@@ -1,5 +1,4 @@
 import json
-from webgenesis_client import WebGenesisClient
 import requests
 import time
 from loggers.time_logger import TimeLogger
